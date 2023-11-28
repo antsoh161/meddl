@@ -1,0 +1,17 @@
+CompileFlags:
+    Add: [-xc++, -Wall]
+    Remove: [-W*, -m*, --sysroot]
+    compiler: g++
+Index:
+    Background: Build
+    StandardLibrary: Yes
+Diagnostics:
+    UnusedIncludes: Strict
+Completion:
+    AllScopes: Yes
+InlayHints:
+    Enabled: Yes
+    ParameterNames: Yes
+    DeducedTypes: Yes
+Hover:
+    ShowAKA: Yes

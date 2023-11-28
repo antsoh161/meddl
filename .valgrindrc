@@ -1,0 +1,21 @@
+# .valgrindrc
+
+# Commonly used options for basic memory error detection
+
+# Check for memory leaks
+--leak-check=full
+
+# Show details about unallocated memory accesses
+--track-origins=yes
+
+# Report errors even if the program exits normally
+--error-exitcode=1
+
+# Increase the verbosity of the output
+--verbose
+
+# Enable stack traces
+--num-callers=20
+
+# Log to a file for further analysis
+--log-file=valgrind.log
