@@ -1,6 +1,4 @@
-
 #include "gtest/gtest.h"
-
 
 TEST(FirstTest, Test1)
 {
