@@ -26,11 +26,11 @@ FetchContent_MakeAvailable(glm)
 
 find_package(Vulkan REQUIRED)
 
-file(GLOB SOURCES "src/*.cpp")
-file(GLOB HEADERS "include/*.h")
-
+file(GLOB SOURCES "src/**/*.cpp" "src/*.cpp")
+file(GLOB HEADERS "include/**/*.h")
+message(STATUS "SOURCES: ${SOURCES}")
 add_executable(TestMeddl ${SOURCES})
-target_link_libraries(TestMeddl PRIVATE glfw Vulkan::Vulkan)
+target_link_libraries(TestMeddl PRIVATE glfw Vulkan::Vulkan pthread)
 target_include_directories(
   TestMeddl PRIVATE ${glfw_SOURCE_DIR}/include ${glm_SOURCE_DIR}
                     ${VULKAN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
