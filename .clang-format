@@ -1,7 +1,9 @@
 BasedOnStyle: Google
 IndentWidth: 2
 UseTab: Never
-AllowShortFunctionsOnASingleLine: None
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: None 
+AllowShortLambdasOnASingleLine: None
 AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: true
 BraceWrapping:
