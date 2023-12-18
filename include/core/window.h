@@ -3,14 +3,13 @@
 
 #include "GLFW/glfw3.h"
 
-struct DestroyglfwWin{
-
-    void operator()(GLFWwindow* ptr){
-         glfwDestroyWindow(ptr);
-    }
-
+struct DestroyglfwWin {
+  void operator()(GLFWwindow* ptr) {
+    glfwDestroyWindow(ptr);
+  }
 };
 
+using Window = std::unique_ptr<GLFWwindow, DestroyglfwWin>;
 class TOMLFile;
 
 struct WindowConfig {
@@ -28,11 +27,11 @@ class WindowBuilder {
 
  public:
   WindowBuilder() = default;
-  WindowBuilder(const WindowConfig cfg);
 
+  WindowBuilder& configure(const WindowConfig& cfg);
   WindowBuilder& width(uint32_t width);
   WindowBuilder& height(uint32_t height);
   WindowBuilder& fullscreen(bool fullscreen);
 
-  std::unique_ptr<GLFWwindow, DestroyglfwWin> build();
+  Window build();
 };

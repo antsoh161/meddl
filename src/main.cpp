@@ -1,16 +1,22 @@
+#include <iostream>
 #include <thread>
+
+#include "core/asserts.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "core/asserts.h"
-#include "core/window.h"
-
+#include "core/engine.h"
 
 int main() {
-  WindowConfig cfg;
-  std::cout << "Default config\n width = " << cfg.width << "\n height = " << cfg.height << "\n";
-  WindowBuilder wb(cfg);
-  auto window = wb.build();
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-  return EXIT_SUCCESS;
+    Engine engine;
+    try {
+        engine.init_glfw();
+        engine.init_vulkan();
+    } catch (const std::exception& e) {
+        M_ASSERT_U("Initialization caught exception: {}", e.what())
+    }
+    engine.run();
+
+    return EXIT_SUCCESS;
 }
