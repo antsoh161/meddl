@@ -32,7 +32,7 @@ struct LogMessage {
 class AsyncLogger {
  public:
   AsyncLogger();
-  virtual ~AsyncLogger();
+  ~AsyncLogger();
   AsyncLogger(AsyncLogger&&) = delete;
   AsyncLogger(const AsyncLogger&) = delete;
   AsyncLogger& operator=(AsyncLogger&&) = delete;

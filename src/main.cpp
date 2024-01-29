@@ -1,11 +1,4 @@
-#include <iostream>
-#include <thread>
-
 #include "core/asserts.h"
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include "core/engine.h"
 
 int main() {
@@ -17,6 +10,5 @@ int main() {
         M_ASSERT_U("Initialization caught exception: {}", e.what())
     }
     engine.run();
-
     return EXIT_SUCCESS;
 }

@@ -1,7 +1,5 @@
 #include "vulkan_renderer/vulkan_debug.h"
 
-#include <vulkan/vulkan_core.h>
-
 #include <iostream>
 #include <stdexcept>
 
