@@ -7,13 +7,13 @@
 
 namespace logger {
 
-enum LogMedia {
+enum class LogMedia {
   LOG_File,
   LOG_Console,
   LOG_StdOut,
 };
 
-enum LogLevel {
+enum class LogLevel {
   NONE,
   DEBUG,
   INFO,
@@ -25,7 +25,7 @@ enum LogLevel {
 
 struct LogMessage {
   std::chrono::system_clock::time_point timestamp;
-  LogLevel level{NONE};
+  LogLevel level{LogLevel::NONE};
   std::string message;
 };
 
@@ -53,7 +53,7 @@ class AsyncLogger {
  private:
   void log_worker();
 
-  std::optional<LogMedia> m_log_media{LOG_StdOut};
+  std::optional<LogMedia> m_log_media{LogMedia::LOG_StdOut};
   bool m_enabled{false};
   
 
