@@ -6,22 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
-VkDebugUtilsMessengerCreateInfoEXT default_info();
-
 class VulkanDebugger {
- private:
-
-  VkDebugUtilsMessengerEXT m_messenger;
-  // Vulkan wants const char*
-  std::unordered_map<std::string, VkLayerProperties> m_available_validation_layers;
-  std::vector<std::string> m_active_validation_layers;
-
  public:
   VulkanDebugger();
   ~VulkanDebugger() = default;
-  VulkanDebugger(VulkanDebugger&&) = delete;
+  VulkanDebugger(VulkanDebugger&&) = default;
+  VulkanDebugger& operator=(VulkanDebugger&&) = default;
   VulkanDebugger(const VulkanDebugger&) = delete;
-  VulkanDebugger& operator=(VulkanDebugger&&) = delete;
   VulkanDebugger& operator=(const VulkanDebugger&) = delete;
 
   void verify_validation_layers();
@@ -32,4 +23,12 @@ class VulkanDebugger {
 
   VkDebugUtilsMessengerEXT* get_messenger();
   void build();
+
+ private:
+  VkDebugUtilsMessengerEXT m_messenger;
+  // Vulkan wants const char*
+  std::unordered_map<std::string, VkLayerProperties> m_available_validation_layers;
+  // TODO: Make this a set
+  std::vector<std::string> m_active_validation_layers;
+
 };

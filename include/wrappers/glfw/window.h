@@ -31,12 +31,9 @@ class Window {
                                         nullptr,
                                         nullptr),
                        glfwDestroyWindow) {
-      std::cout << "Created a window!\n";
    }
 
-   ~Window() {
-      std::cout << "Created a window!\n";
-   };  //=default;
+   ~Window() = default;  //=default;
 
    Window(const Window&) = delete;
 

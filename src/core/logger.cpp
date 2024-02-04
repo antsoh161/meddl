@@ -43,12 +43,12 @@ void AsyncLogger::log_worker() {
 
          // Do writes here.. Spawn individual writers...?
          switch (m_log_media.value()) {
-            case LOG_StdOut:
+            case LogMedia::LOG_StdOut:
                std::cout << "[" << msg.timestamp << "] " << msg.message << "\n";
                break;
-            case LOG_File:
+            case LogMedia::LOG_File:
                break;
-            case LOG_Console:
+            case LogMedia::LOG_Console:
                break;
             default:
                M_ASSERT_U("Unknown Log media, abort");
