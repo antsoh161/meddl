@@ -16,7 +16,7 @@ Context::Context(std::shared_ptr<glfw::Window>&& window,
                  std::optional<VulkanDebugger>&& debugger,
                  VkDebugUtilsMessengerCreateInfoEXT debug_info,
                  VkApplicationInfo app_info,
-                 const std::set<PhysicalDeviceRequirements>& pdr)
+                 const std::set<PhysicalDeviceQueueProperties>& pdr)
     : _window(std::move(window)), _debugger(std::move(debugger)) {
    if (make_instance(app_info, debug_info) != VK_SUCCESS) {
       clean_up();
@@ -113,10 +113,10 @@ bool Context::make_physical_devices() {
    return true;
 }
 
-bool Context::pick_physical_device(const std::set<PhysicalDeviceRequirements>& pdr) {
+bool Context::pick_physical_device(const std::set<PhysicalDeviceQueueProperties>& requested_pr) {
    std::vector<PhysicalDevice*> candidates;
    for (auto& device : _available_devices) {
-      if (device.fulfills_requirement(pdr)) {
+      if (device.fulfills_requirement(requested_pr)) {
          candidates.push_back(&device);
       }
    }
@@ -135,14 +135,14 @@ bool Context::make_logical_device() {
       VkDeviceQueueCreateInfo queue_cinfo{};
       queue_cinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
       queue_cinfo.queueFamilyIndex = index;
-      queue_cinfo.queueCount = 1;
+      queue_cinfo.queueCount = 1; // TODO: 1?
       queue_cinfo.pQueuePriorities = &queue_prio;
       return queue_cinfo;
    };
 
    std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-   for (const auto& active_family : _active_device->get_pdr_to_index_map()) {
-      queue_create_infos.push_back(make_cinfo(active_family.second));
+   for (const auto& family : _active_device->get_queue_families()) {
+      queue_create_infos.push_back(make_cinfo(family._idx));
    }
 
    VkPhysicalDeviceFeatures features{};
@@ -165,17 +165,14 @@ bool Context::make_logical_device() {
       create_info.enabledLayerCount = 0;
    }
 
-   VkDevice handle{VK_NULL_HANDLE};  // TODO: Should LogicalDevice have operator VkDevice*()?
-   QueueFamilies queues{};
-   if (vkCreateDevice(*_active_device, &create_info, nullptr, &handle) != VK_SUCCESS) {
+   if (vkCreateDevice(*_active_device, &create_info, nullptr, _logical_device) != VK_SUCCESS) {
       return false;
    }
-   _logical_device = LogicalDevice(handle, queues);
-   for (const auto& active_family : _active_device->get_pdr_to_index_map()) {
+   for (auto& family : _active_device->get_queue_families()) {
       vkGetDeviceQueue(_logical_device,
-                       active_family.second,
+                       family._idx,
                        0,
-                       &_logical_device.get_queue(active_family.first));
+                       &family._queue);
    }
    return true;
 }
@@ -209,13 +206,13 @@ ContextBuilder& ContextBuilder::with_app_info(const VkApplicationInfo& app_info)
 }
 
 ContextBuilder& ContextBuilder::with_physical_device_requirements(
-    const std::set<PhysicalDeviceRequirements>& pdr) {
+    const std::set<PhysicalDeviceQueueProperties>& pdr) {
    _pdr = pdr;
    return *this;
 }
 
 ContextBuilder& ContextBuilder::with_physical_device_requirements(
-    const PhysicalDeviceRequirements& pdr) {
+    const PhysicalDeviceQueueProperties& pdr) {
    _pdr.insert(pdr);
    return *this;
 }

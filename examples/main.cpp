@@ -19,6 +19,8 @@ int main() {
                      .enable_debugger()
                      .with_debug_layers({"VK_LAYER_KHRONOS_validation"})
                      .build();
+    while(true)
+      ;
    } catch (const std::exception& e) {
       M_ASSERT_U("Initialization caught exception: {}", e.what())
    }

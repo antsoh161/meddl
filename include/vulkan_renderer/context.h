@@ -19,7 +19,7 @@ class Context {
            std::optional<VulkanDebugger>&& debugger,
            VkDebugUtilsMessengerCreateInfoEXT debug_info,
            VkApplicationInfo app_info,
-           const std::set<PhysicalDeviceRequirements>& pdr);
+           const std::set<PhysicalDeviceQueueProperties>& pdr);
 
    Context(const Context&) = delete;
    Context& operator=(const Context&) = delete;
@@ -35,7 +35,7 @@ class Context {
    VkResult make_instance(const VkApplicationInfo& app_info,
                           const VkDebugUtilsMessengerCreateInfoEXT& debug_info);
    bool make_physical_devices();
-   bool pick_physical_device(const std::set<PhysicalDeviceRequirements>& pdr);
+   bool pick_physical_device(const std::set<PhysicalDeviceQueueProperties>& pdr);
    bool make_logical_device();
 
    // TODO: Should a vulkan context hold this?
@@ -68,9 +68,9 @@ class ContextBuilder {
    ContextBuilder& with_debug_layers(const std::vector<std::string>& layers);
    ContextBuilder& with_debug_create_info(const VkDebugUtilsMessengerCreateInfoEXT& debug_info);
    ContextBuilder& with_app_info(const VkApplicationInfo& app_info);
-   ContextBuilder& with_physical_device_requirements(const PhysicalDeviceRequirements& pdr);
+   ContextBuilder& with_physical_device_requirements(const PhysicalDeviceQueueProperties& pdr);
    ContextBuilder& with_physical_device_requirements(
-       const std::set<PhysicalDeviceRequirements>& pdr);
+       const std::set<PhysicalDeviceQueueProperties>& pdr);
    Context build();
 
   private:
@@ -96,8 +96,8 @@ class ContextBuilder {
        meddl_debug_callback,
        nullptr,
    };
-   std::set<PhysicalDeviceRequirements> _pdr{PhysicalDeviceRequirements::PD_GRAPHICS,
-                                             PhysicalDeviceRequirements::PD_PRESENT};
+   std::set<PhysicalDeviceQueueProperties> _pdr{PhysicalDeviceQueueProperties::PD_GRAPHICS,
+                                             PhysicalDeviceQueueProperties::PD_PRESENT};
    std::vector<std::string> _debug_layers{};
 
    std::optional<VulkanDebugger> _debugger;
