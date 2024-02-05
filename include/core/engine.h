@@ -14,13 +14,6 @@ class Engine {
    Engine &operator=(Engine &&) = delete;
    Engine &operator=(const Engine &) = delete;
 
-   void init_glfw();
-   void init_vulkan();
-   void run();
-
   private:
-   std::vector<meddl::glfw::Window> m_windows;
-
    logger::AsyncLogger m_logger{};
-
 };
