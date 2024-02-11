@@ -4,10 +4,12 @@
 
 #include <optional>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 #include "GLFW/glfw3.h"
 #include "vulkan_renderer/device.h"
+#include "vulkan_renderer/swapchain.h"
 #include "vulkan_renderer/vulkan_debug.h"
 #include "wrappers/glfw/window.h"
 
@@ -19,12 +21,13 @@ class Context {
            std::optional<VulkanDebugger>&& debugger,
            VkDebugUtilsMessengerCreateInfoEXT debug_info,
            VkApplicationInfo app_info,
-           const std::set<PhysicalDeviceQueueProperties>& pdr);
+           const std::set<PhysicalDeviceQueueProperties>& pdr,
+           const std::set<std::string>& device_extensions);
 
    Context(const Context&) = delete;
    Context& operator=(const Context&) = delete;
 
-  // TODO: this ok?
+   // TODO: this ok?
    Context(Context&& other) noexcept = default;
    Context& operator=(Context&& other) noexcept = default;
 
@@ -35,8 +38,10 @@ class Context {
    VkResult make_instance(const VkApplicationInfo& app_info,
                           const VkDebugUtilsMessengerCreateInfoEXT& debug_info);
    bool make_physical_devices();
-   bool pick_physical_device(const std::set<PhysicalDeviceQueueProperties>& pdr);
-   bool make_logical_device();
+   bool pick_suitable_device(const std::set<PhysicalDeviceQueueProperties>& pdr,
+                             const std::set<std::string>& requested_extensions);
+   bool make_logical_device(const std::set<std::string>& device_extensions);
+   // bool make_swapchain();
 
    // TODO: Should a vulkan context hold this?
    std::shared_ptr<glfw::Window> _window;
@@ -45,21 +50,22 @@ class Context {
    std::vector<PhysicalDevice> _available_devices{};
    PhysicalDevice* _active_device{nullptr};  // This just points to an element in the device vector
    LogicalDevice _logical_device;
+   SwapChain _swapchain;
    std::optional<VulkanDebugger> _debugger{};
 };
 
 // TODO: Move to meddl::vulkan::debug ?
-namespace{
+namespace {
 VKAPI_ATTR VkBool32 VKAPI_CALL
 meddl_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                       VkDebugUtilsMessageTypeFlagsEXT messageType,
-                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                       void* pUserData) {
+                     VkDebugUtilsMessageTypeFlagsEXT messageType,
+                     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                     void* pUserData) {
    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
    return VK_FALSE;
 }
-}
+}  // namespace
 
 class ContextBuilder {
   public:
@@ -71,6 +77,8 @@ class ContextBuilder {
    ContextBuilder& with_physical_device_requirements(const PhysicalDeviceQueueProperties& pdr);
    ContextBuilder& with_physical_device_requirements(
        const std::set<PhysicalDeviceQueueProperties>& pdr);
+   ContextBuilder& with_required_device_extensions(
+       const std::set<std::string>& device_extensions);
    Context build();
 
   private:
@@ -97,7 +105,8 @@ class ContextBuilder {
        nullptr,
    };
    std::set<PhysicalDeviceQueueProperties> _pdr{PhysicalDeviceQueueProperties::PD_GRAPHICS,
-                                             PhysicalDeviceQueueProperties::PD_PRESENT};
+                                                PhysicalDeviceQueueProperties::PD_PRESENT};
+   std::set<std::string> _device_extensions{};
    std::vector<std::string> _debug_layers{};
 
    std::optional<VulkanDebugger> _debugger;

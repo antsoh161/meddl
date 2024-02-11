@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
 #include <set>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "GLFW/glfw3.h"
-#include "vulkan_renderer/vulkan_debug.h"
 namespace meddl::vulkan {
 
 enum class PhysicalDeviceQueueProperties {
@@ -30,13 +30,16 @@ class PhysicalDevice {
    operator VkPhysicalDevice() const;
 
    [[nodiscard]] bool fulfills_requirement(
-       const std::set<PhysicalDeviceQueueProperties>& pdr) const;
-   [[nodiscard]] bool fulfills_requirement(const PhysicalDeviceQueueProperties& pdr) const;
+       const std::set<PhysicalDeviceQueueProperties>& pdr,
+       const std::set<std::string>& requested_extensions) const;
+   // [[nodiscard]] bool fulfills_requirement(const PhysicalDeviceQueueProperties& pdr) const;
+   // [[nodiscard]] bool fulfills_requirement(const std::set<std::string>& requested_extensions) const;
    [[nodiscard]] std::vector<QueueFamily>& get_queue_families();
 
   private:
    VkPhysicalDevice _handle{VK_NULL_HANDLE};
    std::vector<QueueFamily> _queue_families{};
+   std::set<std::string> _available_extensions;
 };
 
 //! Logical device representation, with the family queues

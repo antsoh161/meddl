@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include <algorithm>
 #include <memory>
 #include <span>
 #include <utility>
@@ -16,8 +15,10 @@ Context::Context(std::shared_ptr<glfw::Window>&& window,
                  std::optional<VulkanDebugger>&& debugger,
                  VkDebugUtilsMessengerCreateInfoEXT debug_info,
                  VkApplicationInfo app_info,
-                 const std::set<PhysicalDeviceQueueProperties>& pdr)
-    : _window(std::move(window)), _debugger(std::move(debugger)) {
+                 const std::set<PhysicalDeviceQueueProperties>& pdr,
+                 const std::set<std::string>& device_extensions)
+    : _window(std::move(window)), _debugger(std::move(debugger))
+{
    if (make_instance(app_info, debug_info) != VK_SUCCESS) {
       clean_up();
       throw std::runtime_error("Vulkan instance creation failed");
@@ -43,30 +44,41 @@ Context::Context(std::shared_ptr<glfw::Window>&& window,
       throw std::runtime_error("No vulkan compatible GPUs found");
    }
 
-   if (!pick_physical_device(pdr)) {
+   if (!pick_suitable_device(pdr, device_extensions)) {
       clean_up();
       throw std::runtime_error("No GPU has the requirements passed to context builder");
    }
-   if (!make_logical_device()) {
+
+   if (!make_logical_device(device_extensions)) {
       clean_up();
       throw std::runtime_error("Logical device creation failed");
    }
+   // if(!make_swapchain())
+   // {
+   //    clean_up();
+   //    throw std::runtime_error("Swapchain creation failed");
+   // }
+   _swapchain.populate_swapchain(*_active_device, _surface);
 }
 
-Context::~Context() {
+Context::~Context()
+{
    clean_up();
 }
 
-void Context::clean_up() {
-   // TODO: Order?
+void Context::clean_up()
+{
    vkDestroyDevice(_logical_device, nullptr);
+   if (_debugger.has_value()) {
+      _debugger->clean_up(_instance);
+   }
    vkDestroySurfaceKHR(_instance, _surface, nullptr);
    vkDestroyInstance(_instance, nullptr);
 }
 
-
 VkResult Context::make_instance(const VkApplicationInfo& app_info,
-                                const VkDebugUtilsMessengerCreateInfoEXT& debug_info) {
+                                const VkDebugUtilsMessengerCreateInfoEXT& debug_info)
+{
    VkInstanceCreateInfo instance_create_info{};
    instance_create_info.sType =
        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;  // TODO: can there be others?
@@ -86,10 +98,10 @@ VkResult Context::make_instance(const VkApplicationInfo& app_info,
       for (const auto& layer : layers) {
          layers_cstyle.push_back(layer.c_str());
       }
-      // instance_create_info.ppEnabledLayerNames = layers_cstyle.data();
       instance_create_info.ppEnabledLayerNames = layers_cstyle.data();
       instance_create_info.pNext = &debug_info;
-   } else {
+   }
+   else {
       instance_create_info.enabledLayerCount = 0;
       instance_create_info.pNext = nullptr;
    }
@@ -99,10 +111,13 @@ VkResult Context::make_instance(const VkApplicationInfo& app_info,
    return vkCreateInstance(&instance_create_info, nullptr, &_instance);
 }
 
-bool Context::make_physical_devices() {
+bool Context::make_physical_devices()
+{
    uint32_t n_devices = 0;
    vkEnumeratePhysicalDevices(_instance, &n_devices, nullptr);
-   if (n_devices < 1) return false;
+   if (n_devices < 1) {
+      return false;
+   }
 
    std::vector<VkPhysicalDevice> devices(n_devices);
    vkEnumeratePhysicalDevices(_instance, &n_devices, devices.data());
@@ -113,10 +128,12 @@ bool Context::make_physical_devices() {
    return true;
 }
 
-bool Context::pick_physical_device(const std::set<PhysicalDeviceQueueProperties>& requested_pr) {
+bool Context::pick_suitable_device(const std::set<PhysicalDeviceQueueProperties>& requested_pdr,
+                                   const std::set<std::string>& requested_extensions)
+{
    std::vector<PhysicalDevice*> candidates;
    for (auto& device : _available_devices) {
-      if (device.fulfills_requirement(requested_pr)) {
+      if (device.fulfills_requirement(requested_pdr, requested_extensions)) {
          candidates.push_back(&device);
       }
    }
@@ -124,18 +141,19 @@ bool Context::pick_physical_device(const std::set<PhysicalDeviceQueueProperties>
       _active_device = candidates[0];
       return true;
    }
+   std::cout << "NO SUITABLE FOUND\n";
    return false;
 }
 
-
-bool Context::make_logical_device() {
+bool Context::make_logical_device(const std::set<std::string>& device_extensions)
+{
    // TODO: This might also be an initialization option
    float queue_prio = 1.0f;
-   auto make_cinfo = [&queue_prio](unsigned int index) -> VkDeviceQueueCreateInfo {
+   auto make_cinfo = [&queue_prio](uint32_t index) -> VkDeviceQueueCreateInfo {
       VkDeviceQueueCreateInfo queue_cinfo{};
       queue_cinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
       queue_cinfo.queueFamilyIndex = index;
-      queue_cinfo.queueCount = 1; // TODO: 1?
+      queue_cinfo.queueCount = 1;  // TODO: 1?
       queue_cinfo.pQueuePriorities = &queue_prio;
       return queue_cinfo;
    };
@@ -151,7 +169,13 @@ bool Context::make_logical_device() {
    create_info.queueCreateInfoCount = queue_create_infos.size();
    create_info.pQueueCreateInfos = queue_create_infos.data();
    create_info.pEnabledFeatures = &features;
-   create_info.enabledExtensionCount = 0;
+   create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+
+   std::vector<const char*> extensions_cstyle{};
+   for (const auto& ext : device_extensions) {
+      extensions_cstyle.push_back(ext.c_str());
+   }
+   create_info.ppEnabledExtensionNames = extensions_cstyle.data();
 
    std::vector<const char*> layers_cstyle{};
    if (_debugger.has_value()) {
@@ -161,7 +185,8 @@ bool Context::make_logical_device() {
          layers_cstyle.push_back(layer.c_str());
       }
       create_info.ppEnabledLayerNames = layers_cstyle.data();
-   } else {
+   }
+   else {
       create_info.enabledLayerCount = 0;
    }
 
@@ -169,61 +194,75 @@ bool Context::make_logical_device() {
       return false;
    }
    for (auto& family : _active_device->get_queue_families()) {
-      vkGetDeviceQueue(_logical_device,
-                       family._idx,
-                       0,
-                       &family._queue);
+      vkGetDeviceQueue(_logical_device, family._idx, 0, &family._queue);
    }
    return true;
 }
 
-ContextBuilder& ContextBuilder::window(std::shared_ptr<glfw::Window> window) {
+// TODO: Delete this function if it's not needed..
+// bool Context::make_swapchain() {
+//    _swapchain.populate_swapchain(*_active_device, _surface);
+//    return true;
+// }
+
+ContextBuilder& ContextBuilder::window(std::shared_ptr<glfw::Window> window)
+{
    _window = window;
    return *this;
 }
 
-ContextBuilder& ContextBuilder::enable_debugger() {
+ContextBuilder& ContextBuilder::enable_debugger()
+{
    _debugger = VulkanDebugger();
    return *this;
 }
 
-const std::vector<const char*> mega_layers{"VK_LAYER_KHRONOS_validation"};
-
-ContextBuilder& ContextBuilder::with_debug_layers(const std::vector<std::string>& layers) {
+ContextBuilder& ContextBuilder::with_debug_layers(const std::vector<std::string>& layers)
+{
    _debug_layers = layers;
    return *this;
 }
 
 ContextBuilder& ContextBuilder::with_debug_create_info(
-    const VkDebugUtilsMessengerCreateInfoEXT& debug_info) {
+    const VkDebugUtilsMessengerCreateInfoEXT& debug_info)
+{
    _debug_info = debug_info;
    return *this;
 }
 
-ContextBuilder& ContextBuilder::with_app_info(const VkApplicationInfo& app_info) {
+ContextBuilder& ContextBuilder::with_app_info(const VkApplicationInfo& app_info)
+{
    _app_info = app_info;
    return *this;
 }
 
 ContextBuilder& ContextBuilder::with_physical_device_requirements(
-    const std::set<PhysicalDeviceQueueProperties>& pdr) {
+    const std::set<PhysicalDeviceQueueProperties>& pdr)
+{
    _pdr = pdr;
    return *this;
 }
 
 ContextBuilder& ContextBuilder::with_physical_device_requirements(
-    const PhysicalDeviceQueueProperties& pdr) {
+    const PhysicalDeviceQueueProperties& pdr)
+{
    _pdr.insert(pdr);
    return *this;
 }
+ContextBuilder& ContextBuilder::with_required_device_extensions(
+    const std::set<std::string>& device_extensions)
+{
+   _device_extensions = device_extensions;
+   return *this;
+}
 
-Context ContextBuilder::build() {
+Context ContextBuilder::build()
+{
    M_ASSERT(_window, "Can NOT create a vulkan context without a valid window");
    if (_debugger.has_value()) {
       _debugger->add_validation_layers(_debug_layers);
-      for(const auto& layer : _debugger->get_active_validation_layers())
-        std::cout << "Active layer in _Debugger: " << layer << "\n";
    }
-   return {std::move(_window), std::move(_debugger), _debug_info, _app_info, _pdr};
+   return {
+       std::move(_window), std::move(_debugger), _debug_info, _app_info, _pdr, _device_extensions};
 }
 }  // namespace meddl::vulkan

@@ -46,19 +46,19 @@ class AsyncLogger {
   void log(const std::format_string<Args...> fmt, Args&&... args) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::string msg = std::format(fmt, std::forward<Args>(args)...);
-    m_shared_queue.push({std::chrono::system_clock::now(), LogLevel::INFO, msg});
+    _shared_queue.push({std::chrono::system_clock::now(), LogLevel::INFO, msg});
     m_cv.notify_one();
   }
 
  private:
   void log_worker();
 
-  std::optional<LogMedia> m_log_media{LogMedia::LOG_StdOut};
-  bool m_enabled{false};
+  std::optional<LogMedia> _log_media{LogMedia::LOG_StdOut};
+  bool _enabled{false};
   
 
-  std::jthread m_worker_thread;
-  std::queue<LogMessage> m_shared_queue;
+  std::jthread _worker_thread;
+  std::queue<LogMessage> _shared_queue;
   std::mutex m_mutex;
   std::condition_variable m_cv;
 };

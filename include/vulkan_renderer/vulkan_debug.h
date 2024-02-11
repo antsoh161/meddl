@@ -22,13 +22,13 @@ class VulkanDebugger {
   void add_validation_layers(const std::vector<std::string>& layers);
 
   VkDebugUtilsMessengerEXT* get_messenger();
-  void build();
+  void clean_up(VkInstance instance);
 
  private:
-  VkDebugUtilsMessengerEXT m_messenger;
+  VkDebugUtilsMessengerEXT _messenger;
   // Vulkan wants const char*
-  std::unordered_map<std::string, VkLayerProperties> m_available_validation_layers;
+  std::unordered_map<std::string, VkLayerProperties> _available_validation_layers;
   // TODO: Make this a set
-  std::vector<std::string> m_active_validation_layers;
+  std::vector<std::string> _active_validation_layers;
 
 };

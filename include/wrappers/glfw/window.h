@@ -48,8 +48,12 @@ class Window {
    }
 
    void should_close(bool value) {
-      glfwSetWindowShouldClose(window_handle.get(), value);
+      glfwWindowShouldClose(window_handle.get());
    }
+
+   void close() {
+    glfwSetWindowShouldClose(window_handle.get(), true);
+  }
 
   private:
    std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> window_handle{nullptr,
