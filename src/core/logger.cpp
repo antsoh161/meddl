@@ -1,37 +1,42 @@
 #include "core/logger.h"
 
 #include <iostream>
+
 #include "core/asserts.h"
 
 namespace logger {
 
 AsyncLogger::AsyncLogger() = default;
 
-AsyncLogger::~AsyncLogger() {
+AsyncLogger::~AsyncLogger()
+{
    _enabled = false;
 }
 
-void AsyncLogger::start() {
+void AsyncLogger::start()
+{
    if (!_log_media.has_value()) {
       log("No log media selected, defaulting to stdout");
       _log_media = LogMedia::LOG_StdOut;
    }
-
    _enabled = true;
    _worker_thread = std::jthread(&AsyncLogger::log_worker, this);
 }
 
-void AsyncLogger::stop(){
+void AsyncLogger::stop()
+{
    _enabled = false;
 }
 
-void AsyncLogger::set_log_media(LogMedia media) {
+void AsyncLogger::set_log_media(LogMedia media)
+{
    _log_media = media;
 }
 
-void AsyncLogger::log_worker() {
+void AsyncLogger::log_worker()
+{
    while (_enabled) {
-      std::unique_lock<std::mutex> lock(m_mutex);
+      std::unique_lock<std::mutex> lock(_mutex);
       m_cv.wait(lock, [this]() {
          return !_shared_queue.empty() || !_enabled;
       });

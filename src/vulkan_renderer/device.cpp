@@ -40,7 +40,7 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice handle, VkSurfaceKHR& surface) :
    std::vector<VkExtensionProperties> available_extensions(ext_count);
    vkEnumerateDeviceExtensionProperties(_handle, nullptr, &ext_count, available_extensions.data());
    for (auto& ext : available_extensions) {
-      _available_extensions.insert(ext.extensionName);
+      _available_extensions.insert(ext.extensionName);  // NOLINT
    }
 }
 
@@ -89,7 +89,7 @@ bool PhysicalDevice::fulfills_requirement(const std::set<PhysicalDeviceQueueProp
 //! ------------------------------------------------------
 //! Logical device
 
-LogicalDevice::operator VkDevice() const
+LogicalDevice::operator VkDevice()
 {
    return _active_logical_device;
 }

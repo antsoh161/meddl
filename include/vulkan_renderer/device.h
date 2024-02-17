@@ -29,11 +29,8 @@ class PhysicalDevice {
 
    operator VkPhysicalDevice() const;
 
-   [[nodiscard]] bool fulfills_requirement(
-       const std::set<PhysicalDeviceQueueProperties>& pdr,
-       const std::set<std::string>& requested_extensions) const;
-   // [[nodiscard]] bool fulfills_requirement(const PhysicalDeviceQueueProperties& pdr) const;
-   // [[nodiscard]] bool fulfills_requirement(const std::set<std::string>& requested_extensions) const;
+   [[nodiscard]] bool fulfills_requirement(const std::set<PhysicalDeviceQueueProperties>& pdr,
+                                           const std::set<std::string>& requested_extensions) const;
    [[nodiscard]] std::vector<QueueFamily>& get_queue_families();
 
   private:
@@ -47,10 +44,10 @@ class LogicalDevice {
   public:
    LogicalDevice() = default;
 
-   operator VkDevice() const;
+   operator VkDevice();
    operator VkDevice*();
 
-   [[nodiscard]] VkQueue& get_queue(const PhysicalDeviceQueueProperties& pdr);
+   // [[nodiscard]] VkQueue& get_queue(const PhysicalDeviceQueueProperties& pdr);
 
   private:
    VkDevice _active_logical_device{VK_NULL_HANDLE};

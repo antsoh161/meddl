@@ -3,7 +3,8 @@
 #include <iostream>
 #include <stdexcept>
 
-VulkanDebugger::VulkanDebugger() {
+VulkanDebugger::VulkanDebugger()
+{
    uint32_t n_layers{};
    vkEnumerateInstanceLayerProperties(&n_layers, nullptr);
 
@@ -16,42 +17,51 @@ VulkanDebugger::VulkanDebugger() {
    }
 }
 
-void VulkanDebugger::add_validation_layer(const std::string& layer) {
+void VulkanDebugger::add_validation_layer(const std::string& layer)
+{
    auto found = _available_validation_layers.find(layer);
    if (found != _available_validation_layers.end()) {
       _active_validation_layers.push_back(layer);
-   } else {
+   }
+   else {
       throw std::runtime_error("Validation layer not available: " + std::string(layer));
    }
 }
 
-void VulkanDebugger::add_validation_layers(const std::vector<std::string>& layers) {
+void VulkanDebugger::add_validation_layers(const std::vector<std::string>& layers)
+{
    for (const auto& layer : layers) {
       auto found = _available_validation_layers.find(layer);
       if (found != _available_validation_layers.end()) {
          _active_validation_layers.push_back(layer);
-      } else {
+      }
+      else {
          throw std::runtime_error("Validation layer not available: " + std::string(layer));
       }
    }
 }
 
 const std::unordered_map<std::string, VkLayerProperties>&
-VulkanDebugger::get_available_validation_layers() const {
+VulkanDebugger::get_available_validation_layers() const
+{
    return _available_validation_layers;
 }
 
-const std::vector<std::string>& VulkanDebugger::get_active_validation_layers() const {
+const std::vector<std::string>& VulkanDebugger::get_active_validation_layers() const
+{
    return _active_validation_layers;
 }
 
-VkDebugUtilsMessengerEXT* VulkanDebugger::get_messenger() {
+VkDebugUtilsMessengerEXT* VulkanDebugger::get_messenger()
+{
    return &_messenger;
 }
 
-void VulkanDebugger::clean_up(VkInstance instance){
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, _messenger, nullptr);
-    }
+void VulkanDebugger::clean_up(VkInstance instance)
+{
+   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+       instance, "vkDestroyDebugUtilsMessengerEXT");
+   if (func != nullptr) {
+      func(instance, _messenger, nullptr);
+   }
 }

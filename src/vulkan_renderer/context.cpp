@@ -46,7 +46,7 @@ Context::Context(std::shared_ptr<glfw::Window>&& window,
 
    if (!pick_suitable_device(pdr, device_extensions)) {
       clean_up();
-      throw std::runtime_error("No GPU has the requirements passed to context builder");
+      throw std::runtime_error("No GPU found with the requirements passed to context builder");
    }
 
    if (!make_logical_device(device_extensions)) {
@@ -199,11 +199,6 @@ bool Context::make_logical_device(const std::set<std::string>& device_extensions
    return true;
 }
 
-// TODO: Delete this function if it's not needed..
-// bool Context::make_swapchain() {
-//    _swapchain.populate_swapchain(*_active_device, _surface);
-//    return true;
-// }
 
 ContextBuilder& ContextBuilder::window(std::shared_ptr<glfw::Window> window)
 {
@@ -262,7 +257,12 @@ Context ContextBuilder::build()
    if (_debugger.has_value()) {
       _debugger->add_validation_layers(_debug_layers);
    }
-   return {
-       std::move(_window), std::move(_debugger), _debug_info, _app_info, _pdr, _device_extensions};
+   return {std::move(_window),
+           std::move(_debugger),
+           _debug_info,
+           _app_info,
+           _pdr,
+           _device_extensions,
+           _swapchain_options};
 }
 }  // namespace meddl::vulkan

@@ -14,10 +14,12 @@ class Window {
   public:
    Window() noexcept = default;
 
-   Window(GLFWwindow* window) : window_handle(window, glfwDestroyWindow) {
+   Window(GLFWwindow* window) : window_handle(window, glfwDestroyWindow)
+   {
    }
 
-   Window(std::nullptr_t) noexcept : Window{} {
+   Window(std::nullptr_t) noexcept : Window{}
+   {
    }
 
    Window(uint32_t width,
@@ -30,7 +32,8 @@ class Window {
                                         title.c_str(),
                                         nullptr,
                                         nullptr),
-                       glfwDestroyWindow) {
+                       glfwDestroyWindow)
+   {
    }
 
    ~Window() = default;  //=default;
@@ -43,17 +46,20 @@ class Window {
 
    Window& operator=(Window&& other) noexcept = default;
 
-   operator GLFWwindow*() const {
+   operator GLFWwindow*() const
+   {
       return window_handle.get();
    }
 
-   void should_close(bool value) {
+   void should_close(bool value)
+   {
       glfwWindowShouldClose(window_handle.get());
    }
 
-   void close() {
-    glfwSetWindowShouldClose(window_handle.get(), true);
-  }
+   void close()
+   {
+      glfwSetWindowShouldClose(window_handle.get(), true);
+   }
 
   private:
    std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> window_handle{nullptr,
