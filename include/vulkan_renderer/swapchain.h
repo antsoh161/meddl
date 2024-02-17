@@ -5,7 +5,7 @@
 
 #include "GLFW/glfw3.h"
 
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 //! Swapchain representation
 class SwapChain {
@@ -20,4 +20,5 @@ class SwapChain {
    std::vector<VkPresentModeKHR > _present_modes{};
    VkSwapchainKHR _handle{VK_NULL_HANDLE};
 };
-}  // namespace meddl::vulkan
+
+}  // namespace meddl::vk

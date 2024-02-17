@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 void SwapChain::populate_swapchain(VkPhysicalDevice device, VkSurfaceKHR surface) {
    VkSurfaceCapabilitiesKHR capabilities;
@@ -30,4 +30,4 @@ void SwapChain::populate_swapchain(VkPhysicalDevice device, VkSurfaceKHR surface
    std::cout << "Populated swapchain with nr formats: " << _formats.size()
              << ", and nr present_modes: " << _present_modes.size() << std::endl;
 }
-}  // namespace meddl::vulkan
+}  // namespace meddl::vk

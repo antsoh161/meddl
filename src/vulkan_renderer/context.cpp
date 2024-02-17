@@ -9,7 +9,7 @@
 #include "core/asserts.h"
 #include "vulkan_renderer/device.h"
 
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 Context::Context(std::shared_ptr<glfw::Window>&& window,
                  std::optional<VulkanDebugger>&& debugger,
@@ -265,4 +265,4 @@ Context ContextBuilder::build()
            _device_extensions,
            _swapchain_options};
 }
-}  // namespace meddl::vulkan
+}  // namespace meddl::vk

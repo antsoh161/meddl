@@ -13,7 +13,7 @@
 #include "vulkan_renderer/vulkan_debug.h"
 #include "wrappers/glfw/window.h"
 
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 class Context {
   public:
@@ -54,13 +54,14 @@ class Context {
    std::optional<VulkanDebugger> _debugger{};
 };
 
-// TODO: Move to meddl::vulkan::debug ?
+// TODO: Move to meddl::vk::debug ?
 namespace {
 VKAPI_ATTR VkBool32 VKAPI_CALL
 meddl_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                      VkDebugUtilsMessageTypeFlagsEXT messageType,
                      const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                     void* pUserData) {
+                     void* pUserData)
+{
    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
    return VK_FALSE;
@@ -82,7 +83,6 @@ class ContextBuilder {
    Context build();
 
   private:
-   // TODO: Will this ptr be thread safe?
    std::shared_ptr<glfw::Window> _window;
    VkApplicationInfo _app_info{VK_STRUCTURE_TYPE_APPLICATION_INFO,
                                nullptr,
@@ -111,4 +111,4 @@ class ContextBuilder {
 
    std::optional<VulkanDebugger> _debugger;
 };
-}  // namespace meddl::vulkan
+}  // namespace meddl::vk

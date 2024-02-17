@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "GLFW/glfw3.h"
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 enum class PhysicalDeviceQueueProperties {
    PD_GRAPHICS,
@@ -53,4 +53,4 @@ class LogicalDevice {
    VkDevice _active_logical_device{VK_NULL_HANDLE};
    std::unordered_map<uint32_t, VkQueue> _logical_queues{};
 };
-}  // namespace meddl::vulkan
+}  // namespace meddl::vk

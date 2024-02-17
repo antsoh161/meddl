@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-namespace meddl::vulkan {
+namespace meddl::vk {
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice handle, VkSurfaceKHR& surface) : _handle(handle)
 {
@@ -98,4 +98,4 @@ LogicalDevice::operator VkDevice*()
    return &_active_logical_device;
 }
 
-}  // namespace meddl::vulkan
+}  // namespace meddl::vk
