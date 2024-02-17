@@ -20,6 +20,7 @@ int main()
                      .enable_debugger()
                      .with_debug_layers({"VK_LAYER_KHRONOS_validation"})
                      .with_required_device_extensions({VK_KHR_SWAPCHAIN_EXTENSION_NAME})
+                     .with_swapchain_options(meddl::vk::SwapChainOptions())  // Default
                      .build();
    }
    catch (const std::exception& e) {

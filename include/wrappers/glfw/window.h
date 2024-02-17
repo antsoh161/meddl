@@ -8,6 +8,11 @@
 
 namespace meddl::glfw {
 
+struct FrameBufferSize {
+   uint32_t width;
+   uint32_t height;
+};
+
 class Monitor;
 
 class Window {
@@ -59,6 +64,13 @@ class Window {
    void close()
    {
       glfwSetWindowShouldClose(window_handle.get(), true);
+   }
+
+   [[nodiscard]] FrameBufferSize get_framebuffer_size() const
+   {
+      int width = 0, height = 0;
+      glfwGetFramebufferSize(window_handle.get(), &width, &height);
+      return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
    }
 
   private:

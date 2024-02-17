@@ -1,33 +1,30 @@
 #include "vulkan_renderer/swapchain.h"
 
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 namespace meddl::vk {
 
-void SwapChain::populate_swapchain(VkPhysicalDevice device, VkSurfaceKHR surface) {
-   VkSurfaceCapabilitiesKHR capabilities;
-   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &capabilities);
-   uint32_t format_count{};
-   vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
-
-   if (format_count > 0) {
-      _formats.resize(format_count);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, _formats.data());
-   } else {
-      std::cerr << "No formats available..\n";
+SwapChain::SwapChain(LogicalDevice& logical_device,
+                     const std::unordered_set<VkSurfaceFormatKHR>& formats,
+                     const std::unordered_set<VkPresentModeKHR>& present_modes,
+                     const VkSurfaceCapabilitiesKHR& surface_capabilities,
+                     const VkSwapchainCreateInfoKHR& swapchain_info)
+    : _formats(formats),
+      _present_modes(present_modes),
+      _surface_capabilities(surface_capabilities),
+      _active_swapchain_info(swapchain_info)
+{
+   if (vkCreateSwapchainKHR(
+           static_cast<VkDevice>(logical_device), &_active_swapchain_info, nullptr, &_handle) !=
+       VK_SUCCESS) {
+      std::runtime_error("Failed to create swapchain");
    }
+}
 
-   uint32_t present_modes_count{};
-   vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_modes_count, nullptr);
-   if (present_modes_count > 0) {
-      _present_modes.resize(present_modes_count);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(
-          device, surface, &present_modes_count, _present_modes.data());
-   } else {
-      std::cerr << "No present modes available..\n";
-   }
-   std::cout << "Populated swapchain with nr formats: " << _formats.size()
-             << ", and nr present_modes: " << _present_modes.size() << std::endl;
+SwapChain::operator VkSwapchainKHR()
+{
+   return _handle;
 }
 }  // namespace meddl::vk

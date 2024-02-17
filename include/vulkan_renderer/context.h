@@ -22,7 +22,8 @@ class Context {
            VkDebugUtilsMessengerCreateInfoEXT debug_info,
            VkApplicationInfo app_info,
            const std::set<PhysicalDeviceQueueProperties>& pdr,
-           const std::set<std::string>& device_extensions);
+           const std::set<std::string>& device_extensions,
+           const SwapChainOptions& swapchain_options);
 
    Context(const Context&) = delete;
    Context& operator=(const Context&) = delete;
@@ -41,7 +42,7 @@ class Context {
    bool pick_suitable_device(const std::set<PhysicalDeviceQueueProperties>& pdr,
                              const std::set<std::string>& requested_extensions);
    bool make_logical_device(const std::set<std::string>& device_extensions);
-   // bool make_swapchain();
+   void make_swapchain(const SwapChainOptions& swapchain_options);
 
    // TODO: Should a vulkan context hold this?
    std::shared_ptr<glfw::Window> _window;
@@ -78,8 +79,9 @@ class ContextBuilder {
    ContextBuilder& with_physical_device_requirements(const PhysicalDeviceQueueProperties& pdr);
    ContextBuilder& with_physical_device_requirements(
        const std::set<PhysicalDeviceQueueProperties>& pdr);
-   ContextBuilder& with_required_device_extensions(
-       const std::set<std::string>& device_extensions);
+   ContextBuilder& with_required_device_extensions(const std::set<std::string>& device_extensions);
+   ContextBuilder& with_swapchain_options(const SwapChainOptions& swapchain_options);
+   ContextBuilder& with_swapchain_info(const VkSwapchainCreateInfoKHR& swapchain_info);
    Context build();
 
   private:
@@ -109,6 +111,7 @@ class ContextBuilder {
    std::set<std::string> _device_extensions{};
    std::vector<std::string> _debug_layers{};
 
+   SwapChainOptions _swapchain_options{};
    std::optional<VulkanDebugger> _debugger;
 };
 }  // namespace meddl::vk
