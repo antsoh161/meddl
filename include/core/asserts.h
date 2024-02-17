@@ -33,3 +33,6 @@
       std::abort();                                                                                \
    }
 
+#define M_TODO(message)      \
+   std::cerr << std::format( \
+       "TODO exception: {}, at {}:{}", __FILE__, __LINE__, std::format(message))\
