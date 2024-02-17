@@ -9,7 +9,6 @@ target_compile_options(
   PRIVATE $<$<CONFIG:Release>:-O2>
   PRIVATE $<$<CONFIG:Debug>:-O0>)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-  target_compile_options(MeddlExample1 PRIVATE -Wall -Wextra -pedantic)
-  # target_link_options(MeddlExample1 PRIVATE -fsanitize=thread)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+   target_compile_options(MeddlExample1 PRIVATE -Wall -Wextra -pedantic )
 endif()

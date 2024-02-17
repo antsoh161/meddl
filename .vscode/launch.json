@@ -1,0 +1,15 @@
+{
+   "version": "2.0.0",
+   "configurations": [
+      {
+         "type": "cppdbg",
+         "request": "launch",
+         "name": "Launch MeddlExample1",
+         "program": "${workspaceFolder}/build/Debug/examples/MeddlExample1",
+         "preLaunchTask": "prelaunch echo",
+         "postLaunchTask": "postlaunch echo",
+         "cwd": "${workspaceFolder}",
+         "stopAtEntry": true
+      }
+   ]
+}

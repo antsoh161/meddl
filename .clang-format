@@ -2,8 +2,8 @@ BasedOnStyle: Google
 IndentWidth: 3
 Language: Cpp
 UseTab: Never
-ColumnLimit: 100 
-AllowShortFunctionsOnASingleLine: None 
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: None
 AllowShortLambdasOnASingleLine: None
 AlwaysBreakBeforeMultilineStrings: true
 AlignAfterOpenBracket: true
@@ -11,11 +11,4 @@ AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
 BreakBeforeBraces: Stroustrup
-# BraceWrapping:
-#   AfterClass: true
-#   AfterControlStatement: true
-#   AfterFunction: true
-#   AfterNamespace: true
-#   AfterStruct: true
-#   AfterUnion: true
 PointerAlignment: Left

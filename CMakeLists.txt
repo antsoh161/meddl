@@ -3,22 +3,23 @@ project(Meddl)
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(BUILD_TESTS OFF)
+set(BUILD_TESTS ON)
 set(BUILD_EXAMPLES ON)
+set(BUILD_SHARED_LIBS ON)
 
 set(FETCHCONTENT_QUIET OFF) # Debug
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
 
+
 find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/**/*.cpp" "src/*.cpp")
-file(GLOB HEADERS "include/**/*.h")
+file(GLOB HEADERS "include/**/*.h" "include/**/*.hpp")
 
 add_library(Meddl ${SOURCES})
 target_include_directories(

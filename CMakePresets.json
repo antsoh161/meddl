@@ -18,6 +18,7 @@
       "inherits": "default",
       "displayName": "Debug",
       "description": "Debug symbols included",
+      "binaryDir": "build/Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
@@ -28,6 +29,7 @@
       "inherits": "default",
       "displayName": "Release",
       "description": "Release symbols included",
+      "binaryDir": "build/Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
