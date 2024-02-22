@@ -20,26 +20,18 @@ jobs:
       matrix:
         # os: [ubuntu-latest, windows-latest]
         os: [ubuntu-latest]
+        #build_type: [Release, Debug]
         build_type: [Release]
-        cxx_compiler: [g++, clang++, cl]
-        c_compiler: [gcc, clang, cl]
-        include:
-          - os: ubuntu-latest
-            cxx_compiler: g++
-            c_compiler: gcc
-        exclude:
-          - os: ubuntu-latest
-            c_compiler: cl
-            cxx_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: clang
-            cxx_compiler: clang++
+        #compilers: [ {c: gcc, cpp: g++}, {c: clang, cpp: clang++}, {c: cl, cpp: cl}]
+        compilers:
+        - {c: gcc, cpp: g++}
+        - {c: clang-17, cpp: clang++-17} 
 
     steps:
     - uses: actions/checkout@v4
 
     - name: cmake
-      run: cmake -DCMAKE_C_COMPILER= ${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }} --preset ${{ matrix.build_type }}
+      run: cmake -DCMAKE_C_COMPILER=${{ matrix.compilers.c }} -DCMAKE_CXX_COMPILER=${{ matrix.compilers.cpp }} --preset ${{ matrix.build_type }}
 
     - name: cmake build
       run: cmake --build --preset ${{ matrix.build_type }}
