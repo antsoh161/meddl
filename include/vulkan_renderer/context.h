@@ -27,10 +27,8 @@ class Context {
 
    Context(const Context&) = delete;
    Context& operator=(const Context&) = delete;
-
-   // TODO: this ok?
-   Context(Context&& other) noexcept = default;
-   Context& operator=(Context&& other) noexcept = default;
+   Context(Context&& other) noexcept = delete;
+   Context& operator=(Context&& other) noexcept = delete;
 
    ~Context();
 

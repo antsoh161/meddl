@@ -31,12 +31,16 @@ class SwapChain {
              const VkSwapchainCreateInfoKHR& swapchain_info);
 
    operator VkSwapchainKHR();
+   [[nodiscard]] constexpr size_t get_image_count() const;
+   [[nodiscard]] std::vector<VkImageView>& get_image_views();
 
   private:
    std::unordered_set<VkSurfaceFormatKHR> _formats{};
    std::unordered_set<VkPresentModeKHR> _present_modes{};
    VkSurfaceCapabilitiesKHR _surface_capabilities{};
    VkSwapchainCreateInfoKHR _active_swapchain_info{};
+   std::vector<VkImage> _images{};
+   std::vector<VkImageView> _image_views{};
 
    VkSwapchainKHR _handle{VK_NULL_HANDLE};
 };

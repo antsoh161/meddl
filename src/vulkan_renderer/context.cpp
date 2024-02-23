@@ -70,6 +70,10 @@ Context::~Context()
 
 void Context::clean_up()
 {
+   for(auto& image_view : _swapchain.get_image_views())
+   {
+      vkDestroyImageView(_logical_device, image_view, nullptr);
+   }
    vkDestroySwapchainKHR(_logical_device, _swapchain, nullptr);
    vkDestroyDevice(_logical_device, nullptr);
    if (_debugger.has_value()) {
@@ -253,18 +257,18 @@ void Context::make_swapchain(const SwapChainOptions& swapchain_options)
       present_mode_set.insert(present_mode);
    }
 
-   uint32_t image_count = swapchain_options.image_count.has_value()
+   uint32_t min_image_count = swapchain_options.image_count.has_value()
                               ? swapchain_options.image_count.value()
                               : surface_capabilities.minImageCount + 1;
    // 0 max means there's no maximum to image count
-   if (surface_capabilities.maxImageCount > 0 && image_count > surface_capabilities.maxImageCount) {
-      image_count = surface_capabilities.maxImageCount;
+   if (surface_capabilities.maxImageCount > 0 && min_image_count > surface_capabilities.maxImageCount) {
+      min_image_count = surface_capabilities.maxImageCount;
    }
 
    VkSwapchainCreateInfoKHR swapchain_info{};
    swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
    swapchain_info.surface = _surface;
-   swapchain_info.minImageCount = image_count;
+   swapchain_info.minImageCount = min_image_count;
    auto found_format = format_set.find(swapchain_options.surface_format);
    if (found_format != format_set.end()) {
       swapchain_info.imageFormat = found_format->format;
