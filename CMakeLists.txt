@@ -12,11 +12,17 @@ set(BUILD_EXAMPLES ON)
 set(BUILD_SHARED_LIBS ON)
 
 set(FETCHCONTENT_QUIET OFF) # Debug
+if(BUILD_TESTS)
+add_subdirectory(third_party/googletest)
+endif()
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
 
-
 find_package(Vulkan REQUIRED)
+
+# idk shaderc cmake seems ancient so pkgconfig..?
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
 
 file(GLOB SOURCES "src/**/*.cpp" "src/*.cpp")
 file(GLOB HEADERS "include/**/*.h" "include/**/*.hpp")
@@ -24,8 +30,9 @@ file(GLOB HEADERS "include/**/*.h" "include/**/*.hpp")
 add_library(Meddl ${SOURCES})
 target_include_directories(
   Meddl PUBLIC ${glfw_SOURCE_DIR}/include ${glm_SOURCE_DIR}
-               ${VULKAN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(Meddl PUBLIC glfw Vulkan::Vulkan pthread)
+               ${VULKAN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include) 
+
+target_link_libraries(Meddl PUBLIC glfw Vulkan::Vulkan PkgConfig::Shaderc pthread)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
 target_compile_options(
   Meddl
@@ -37,6 +44,5 @@ if(BUILD_EXAMPLES)
 endif()
 
 if(BUILD_TESTS)
-  add_subdirectory(third_party/googletest)
   add_subdirectory(tests)
 endif()
