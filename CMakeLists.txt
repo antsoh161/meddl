@@ -13,7 +13,7 @@ set(BUILD_SHARED_LIBS ON)
 
 set(FETCHCONTENT_QUIET OFF) # Debug
 if(BUILD_TESTS)
-add_subdirectory(third_party/googletest)
+   add_subdirectory(third_party/googletest)
 endif()
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
@@ -24,13 +24,26 @@ find_package(Vulkan REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
 
-file(GLOB SOURCES "src/**/*.cpp" "src/*.cpp")
-file(GLOB HEADERS "include/**/*.h" "include/**/*.hpp")
+# file(GLOB srcs "src/**/*.cpp" "src/*.cpp")
+# file(GLOB hdrs "include/**/*.h" "include/**/*.hpp")
 
-add_library(Meddl ${SOURCES})
-target_include_directories(
-  Meddl PUBLIC ${glfw_SOURCE_DIR}/include ${glm_SOURCE_DIR}
-               ${VULKAN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include) 
+file(GLOB_RECURSE srcs CONFIGURE_DEPENDS src/*.cpp)
+file(GLOB_RECURSE hdrs CONFIGURE_DEPENDS include/*.h include/*.hpp)
+
+# add_library(Meddl ${SOURCES})
+add_library(Meddl)
+target_sources(Meddl PUBLIC
+      ${srcs} 
+   PUBLIC
+   FILE_SET HEADERS
+   BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+   FILES
+      ${hdrs}
+)
+
+# target_include_directories(
+#   Meddl PUBLIC ${glfw_SOURCE_DIR}/include ${glm_SOURCE_DIR}
+#                ${VULKAN_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include) 
 
 target_link_libraries(Meddl PUBLIC glfw Vulkan::Vulkan PkgConfig::Shaderc pthread)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
@@ -38,6 +51,12 @@ target_compile_options(
   Meddl
   PRIVATE $<$<CONFIG:Release>:-O2>
   PRIVATE $<$<CONFIG:Debug>:-O0>)
+target_compile_options(
+  Meddl
+  PRIVATE
+    $<$<CXX_COMPILER_ID:GNU>:-fmodules-ts>
+    $<$<CXX_COMPILER_ID:Clang>:-fmodules-ts>
+)
 
 if(BUILD_EXAMPLES)
    add_subdirectory(examples)
