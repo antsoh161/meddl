@@ -1,9 +1,9 @@
-#include "vulkan_renderer/vulkan_debug.h"
-
 #include <iostream>
 #include <stdexcept>
 
-VulkanDebugger::VulkanDebugger()
+#include "vk/debug.h"
+
+Debugger::Debugger()
 {
    uint32_t n_layers{};
    vkEnumerateInstanceLayerProperties(&n_layers, nullptr);
@@ -17,7 +17,7 @@ VulkanDebugger::VulkanDebugger()
    }
 }
 
-void VulkanDebugger::add_validation_layer(const std::string& layer)
+void Debugger::add_validation_layer(const std::string& layer)
 {
    auto found = _available_validation_layers.find(layer);
    if (found != _available_validation_layers.end()) {
@@ -28,7 +28,7 @@ void VulkanDebugger::add_validation_layer(const std::string& layer)
    }
 }
 
-void VulkanDebugger::add_validation_layers(const std::vector<std::string>& layers)
+void Debugger::add_validation_layers(const std::vector<std::string>& layers)
 {
    for (const auto& layer : layers) {
       auto found = _available_validation_layers.find(layer);
@@ -42,22 +42,22 @@ void VulkanDebugger::add_validation_layers(const std::vector<std::string>& layer
 }
 
 const std::unordered_map<std::string, VkLayerProperties>&
-VulkanDebugger::get_available_validation_layers() const
+Debugger::get_available_validation_layers() const
 {
    return _available_validation_layers;
 }
 
-const std::vector<std::string>& VulkanDebugger::get_active_validation_layers() const
+const std::vector<std::string>& Debugger::get_active_validation_layers() const
 {
    return _active_validation_layers;
 }
 
-VkDebugUtilsMessengerEXT* VulkanDebugger::get_messenger()
+VkDebugUtilsMessengerEXT* Debugger::get_messenger()
 {
    return &_messenger;
 }
 
-void VulkanDebugger::clean_up(VkInstance instance)
+void Debugger::clean_up(VkInstance instance)
 {
    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
        instance, "vkDestroyDebugUtilsMessengerEXT");

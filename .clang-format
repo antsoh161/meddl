@@ -1,14 +1,15 @@
+
 BasedOnStyle: Google
 IndentWidth: 3
 Language: Cpp
 UseTab: Never
 ColumnLimit: 100
-AllowShortFunctionsOnASingleLine: None
-AllowShortLambdasOnASingleLine: None
+PackConstructorInitializers: NextLine
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
 AlwaysBreakBeforeMultilineStrings: true
 AlignAfterOpenBracket: true
-AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
 BreakBeforeBraces: Stroustrup
-PointerAlignment: Left
+DerivePointerAlignment: false

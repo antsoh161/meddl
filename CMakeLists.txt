@@ -13,6 +13,7 @@ set(BUILD_SHARED_LIBS ON)
 
 set(FETCHCONTENT_QUIET OFF) # Debug
 if(BUILD_TESTS)
+   enable_testing()
    add_subdirectory(third_party/googletest)
 endif()
 add_subdirectory(third_party/glfw)
@@ -25,32 +26,30 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
 
 file(GLOB_RECURSE srcs CONFIGURE_DEPENDS src/*.cpp)
+# file(GLOB_RECURSE modules CONFIGURE_DEPENDS src/*.cppm)
 file(GLOB_RECURSE hdrs CONFIGURE_DEPENDS include/*.h include/*.hpp)
 
 add_library(Meddl)
 target_sources(Meddl PUBLIC
       ${srcs} 
    PUBLIC
-   FILE_SET HEADERS
-   BASE_DIRS ${PROJECT_SOURCE_DIR}/include
-   FILES
-      ${hdrs}
+      FILE_SET HEADERS
+      BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+      FILES
+         ${hdrs}
+   # PUBLIC
+   #    FILE_SET CXX_MODULES
+   #    BASE_DIRS ${PROJECT_SOURCE_DIR}/mod
+   #    FILES
+   #       ${modules}
 )
-
+      
 target_link_libraries(Meddl PUBLIC glfw Vulkan::Vulkan PkgConfig::Shaderc pthread)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
 target_compile_options(
   Meddl
   PRIVATE $<$<CONFIG:Release>:-O2>
   PRIVATE $<$<CONFIG:Debug>:-O0>)
-
-# Waiting for GCC-14 with this
-# target_compile_options(
-#   Meddl
-#   PRIVATE
-#     $<$<CXX_COMPILER_ID:GNU>:-fmodules-ts>
-#     $<$<CXX_COMPILER_ID:Clang>:-fmodules-ts>
-# )
 
 if(BUILD_EXAMPLES)
    add_subdirectory(examples)

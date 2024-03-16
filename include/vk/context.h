@@ -2,15 +2,16 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <iostream>
 #include <optional>
 #include <set>
 #include <unordered_set>
 #include <vector>
 
 #include "GLFW/glfw3.h"
-#include "vulkan_renderer/device.h"
-#include "vulkan_renderer/swapchain.h"
-#include "vulkan_renderer/vulkan_debug.h"
+#include "vk/device.h"
+#include "vk/swapchain.h"
+#include "vk/debug.h"
 #include "wrappers/glfw/window.h"
 
 namespace meddl::vk {
@@ -18,12 +19,12 @@ namespace meddl::vk {
 class Context {
   public:
    Context(std::shared_ptr<glfw::Window>&& window,
-           std::optional<VulkanDebugger>&& debugger,
+           std::optional<Debugger>&& debugger,
            VkDebugUtilsMessengerCreateInfoEXT debug_info,
            VkApplicationInfo app_info,
            const std::set<PhysicalDeviceQueueProperties>& pdr,
            const std::set<std::string>& device_extensions,
-           const SwapChainOptions& swapchain_options);
+           const SwapchainOptions& swapchain_options);
 
    Context(const Context&) = delete;
    Context& operator=(const Context&) = delete;
@@ -40,7 +41,7 @@ class Context {
    bool pick_suitable_device(const std::set<PhysicalDeviceQueueProperties>& pdr,
                              const std::set<std::string>& requested_extensions);
    bool make_logical_device(const std::set<std::string>& device_extensions);
-   void make_swapchain(const SwapChainOptions& swapchain_options);
+   void make_swapchain(const SwapchainOptions& swapchain_options);
 
    // TODO: Should a vulkan context hold this?
    std::shared_ptr<glfw::Window> _window;
@@ -50,13 +51,13 @@ class Context {
    PhysicalDevice* _active_device{nullptr};  // This just points to an element in the device vector
    LogicalDevice _logical_device;
    SwapChain _swapchain;
-   std::optional<VulkanDebugger> _debugger{};
+   std::optional<Debugger> _debugger{};
 };
 
 // TODO: Move to meddl::vk::debug ?
 namespace {
 VKAPI_ATTR VkBool32 VKAPI_CALL
-meddl_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+meddl_debug_callback2(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                      VkDebugUtilsMessageTypeFlagsEXT messageType,
                      const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                      void* pUserData)
@@ -78,7 +79,7 @@ class ContextBuilder {
    ContextBuilder& with_physical_device_requirements(
        const std::set<PhysicalDeviceQueueProperties>& pdr);
    ContextBuilder& with_required_device_extensions(const std::set<std::string>& device_extensions);
-   ContextBuilder& with_swapchain_options(const SwapChainOptions& swapchain_options);
+   ContextBuilder& with_swapchain_options(const SwapchainOptions& swapchain_options);
    ContextBuilder& with_swapchain_info(const VkSwapchainCreateInfoKHR& swapchain_info);
    Context build();
 
@@ -101,7 +102,7 @@ class ContextBuilder {
        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-       meddl_debug_callback,
+       meddl_debug_callback2,
        nullptr,
    };
    std::set<PhysicalDeviceQueueProperties> _pdr{PhysicalDeviceQueueProperties::PD_GRAPHICS,
@@ -109,7 +110,7 @@ class ContextBuilder {
    std::set<std::string> _device_extensions{};
    std::vector<std::string> _debug_layers{};
 
-   SwapChainOptions _swapchain_options{};
-   std::optional<VulkanDebugger> _debugger;
+   SwapchainOptions _swapchain_options{};
+   std::optional<Debugger> _debugger;
 };
 }  // namespace meddl::vk

@@ -1,7 +1,7 @@
 project(MeddlUnitTests)
 
-file(GLOB SOURCES "*.cpp")
-add_executable(vulkan_unit_tests ${SOURCES})
-target_link_libraries(vulkan_unit_tests GTest::gtest)
-add_test(NAME VulkanUnitTests COMMAND vulkan_unit_tests)
+file(GLOB SOURCES "vk/*.cpp")
+add_executable(MeddlVkTests main.cpp ${SOURCES})
+target_link_libraries(MeddlVkTests Meddl GTest::gtest_main)
+add_test(NAME MeddlVkTests COMMAND MeddlVkTests)
 
