@@ -6,14 +6,14 @@
 
 #include "GLFW/glfw3.h"
 
-class VulkanDebugger {
+class Debugger {
   public:
-   VulkanDebugger();
-   ~VulkanDebugger() = default;
-   VulkanDebugger(VulkanDebugger&&) = default;
-   VulkanDebugger& operator=(VulkanDebugger&&) = default;
-   VulkanDebugger(const VulkanDebugger&) = delete;
-   VulkanDebugger& operator=(const VulkanDebugger&) = delete;
+   Debugger();
+   ~Debugger() = default;
+   Debugger(Debugger&&) = default;
+   Debugger& operator=(Debugger&&) = default;
+   Debugger(const Debugger&) = delete;
+   Debugger& operator=(const Debugger&) = delete;
 
    void verify_validation_layers();
    const std::unordered_map<std::string, VkLayerProperties>& get_available_validation_layers()
