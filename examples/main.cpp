@@ -1,9 +1,8 @@
 #include <fstream>
 #include <shaderc/shaderc.hpp>
 #include <thread>
+#include <print>
 
-#include "core/asserts.h"
-#include "vulkan_renderer/context.h"
 #include "wrappers/glfw/window.h"
 
 static std::string readFile(const std::string& filename)
@@ -30,20 +29,8 @@ auto main() -> int
    glfwInit();
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-   auto window =
-       std::make_shared<meddl::glfw::Window>(WINDOW_WIDTH, WINDOW_HEIGHT, "MeddlExample 1");
-   try {
-      auto ctx = meddl::vk::ContextBuilder()
-                     .window(window)
-                     .enable_debugger()
-                     .with_debug_layers({"VK_LAYER_KHRONOS_validation"})
-                     .with_required_device_extensions({VK_KHR_SWAPCHAIN_EXTENSION_NAME})
-                     .with_swapchain_options(meddl::vk::SwapChainOptions())  // Default
-                     .build();
-   }
-   catch (const std::exception& e) {
-      M_ASSERT_U("Initialization caught exception: {}", e.what())
-   }
+   auto window = std::make_shared<meddl::glfw::Window>(WINDOW_WIDTH, WINDOW_HEIGHT, "MeddlExample 1");
+
    shaderc::Compiler compiler;
    shaderc::CompileOptions options;
    auto vss = readFile("examples/shaders/shader.vert");
@@ -55,10 +42,10 @@ auto main() -> int
                                  "vertex_shader.vert",
                                  options);
    if (vertResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-      std::cout << vertResult.GetErrorMessage() << std::endl;
+      std::println("{}", vertResult.GetErrorMessage());
    }
    else {
-      std::cout << "Success!\n";
+      std::println("Success");
    }
 
    auto counter = 0;
