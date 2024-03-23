@@ -2,7 +2,7 @@
 
 #include "GLFW/glfw3.h"
 #include "vk/instance.h"
-#include "wrappers/glfw/window.h"
+#include "app/window.h"
 
 namespace meddl::vk {
 class Surface {

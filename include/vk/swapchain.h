@@ -1,12 +1,11 @@
 #pragma once
 
-#include <optional>
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
 #include "vk/device.h"
-#include "wrappers/glfw/window.h"
-#include "wrappers/vulkan/vulkan_hash.hpp"
+#include "app/window.h"
+#include "vk/hash.hpp"
 
 namespace meddl::vk {
 

@@ -165,8 +165,11 @@ Swapchain::~Swapchain()
 {
    if(_swapchain)
    {
-      // TODO: Allocator
-      vkDestroySwapchainKHR(*_device, _swapchain, nullptr);
+      for(auto image_view : _image_views)
+      {
+         vkDestroyImageView(*_device, image_view, _device->get_allocators());
+      }
+      vkDestroySwapchainKHR(*_device, _swapchain, _device->get_allocators());
    }
 }
 

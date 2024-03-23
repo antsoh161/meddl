@@ -22,15 +22,21 @@ class Window {
 
    Window(std::nullptr_t) noexcept : Window{} {}
 
-   Window(uint32_t width, uint32_t height, const std::string& title,
-          const Monitor* monitor = nullptr, Window* share = nullptr)
-       : window_handle(glfwCreateWindow(static_cast<int>(width), static_cast<int>(height),
-                                        title.c_str(), nullptr, nullptr),
+   Window(uint32_t width,
+          uint32_t height,
+          const std::string& title,
+          const Monitor* monitor = nullptr,
+          Window* share = nullptr)
+       : window_handle(glfwCreateWindow(static_cast<int>(width),
+                                        static_cast<int>(height),
+                                        title.c_str(),
+                                        nullptr,
+                                        nullptr),
                        glfwDestroyWindow)
    {
    }
 
-   ~Window() = default; 
+   ~Window() = default;
 
    Window(const Window&) = delete;
    Window& operator=(const Window&) = delete;

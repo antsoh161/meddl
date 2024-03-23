@@ -48,16 +48,17 @@ class PhysicalDevice {
    PFN_vkGetPhysicalDeviceProperties2 _vkGetPhysicalDeviceProperties2 = nullptr;
 };
 
+// TODO: Device extensions
 class DeviceExtensions {};
-// Surface,
+
 class Device {
   public:
    Device() = delete;
    Device(PhysicalDevice* physical_device,
-             const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
-             const std::unordered_set<std::string>& device_extensions,
-             const std::optional<VkPhysicalDeviceFeatures>& device_features = std::nullopt,
-             const std::optional<Debugger>& debugger = std::nullopt);
+          const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
+          const std::unordered_set<std::string>& device_extensions,
+          const std::optional<VkPhysicalDeviceFeatures>& device_features = std::nullopt,
+          const std::optional<Debugger>& debugger = std::nullopt);
    ~Device();
 
    Device(const Device&) = delete;
@@ -67,6 +68,9 @@ class Device {
 
    operator VkDevice() const { return _device; }
    [[nodiscard]] VkDevice vk() const { return _device; }
+
+   // TODO: Allocator
+   VkAllocationCallbacks* get_allocators() { return nullptr; }
 
   private:
    VkDevice _device{};

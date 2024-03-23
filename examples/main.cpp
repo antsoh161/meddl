@@ -1,9 +1,10 @@
 #include <fstream>
+#include <print>
 #include <shaderc/shaderc.hpp>
 #include <thread>
-#include <print>
 
-#include "wrappers/glfw/window.h"
+#include "app/window.h"
+#include "vk/shader.h"
 
 static std::string readFile(const std::string& filename)
 {
@@ -29,24 +30,34 @@ auto main() -> int
    glfwInit();
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-   auto window = std::make_shared<meddl::glfw::Window>(WINDOW_WIDTH, WINDOW_HEIGHT, "MeddlExample 1");
+   auto window =
+       std::make_shared<meddl::glfw::Window>(WINDOW_WIDTH, WINDOW_HEIGHT, "MeddlExample 1");
 
-   shaderc::Compiler compiler;
-   shaderc::CompileOptions options;
-   auto vss = readFile("examples/shaders/shader.vert");
-   auto fss = readFile("examples/shaders/shader.frag");
-   shaderc::SpvCompilationResult vertResult =
-       compiler.CompileGlslToSpv(vss.c_str(),
-                                 vss.size(),
-                                 shaderc_shader_kind::shaderc_vertex_shader,
-                                 "vertex_shader.vert",
-                                 options);
-   if (vertResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-      std::println("{}", vertResult.GetErrorMessage());
-   }
-   else {
-      std::println("Success");
-   }
+   meddl::vk::ShaderCompiler compiler;
+   auto vertex_code = compiler.compile("/home/anton/workspace/meddl/examples/shaders/shader.vert",
+                                       shaderc_shader_kind::shaderc_vertex_shader);
+   auto fragment_code = compiler.compile("/home/anton/workspace/meddl/examples/shaders/shader.frag",
+                                         shaderc_shader_kind::shaderc_fragment_shader);
+
+   std::println("vert size: {}", vertex_code.size());
+   std::println("frag size: {}", fragment_code.size());
+
+   // shaderc::Compiler compiler;
+   // shaderc::CompileOptions options;
+   // auto vss = readFile("examples/shaders/shader.vert");
+   // auto fss = readFile("examples/shaders/shader.frag");
+   // shaderc::SpvCompilationResult vertResult =
+   //     compiler.CompileGlslToSpv(vss.c_str(),
+   //                               vss.size(),
+   //                               shaderc_shader_kind::shaderc_vertex_shader,
+   //                               "vertex_shader.vert",
+   //                               options);
+   // if (vertResult.GetCompilationStatus() != shaderc_compilation_status_success) {
+   //    std::println("{}", vertResult.GetErrorMessage());
+   // }
+   // else {
+   //    std::println("Success");
+   // }
 
    auto counter = 0;
    while (!glfwWindowShouldClose(*window)) {
