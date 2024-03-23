@@ -1,12 +1,11 @@
-#include <chrono>
 #include <print>
-#include <thread>
 
 #include "gtest/gtest.h"
 #include "vk/debug.h"
 #include "vk/defaults.h"
 #include "vk/device.h"
 #include "vk/instance.h"
+#include "vk/shader.h"
 #include "vk/surface.h"
 #include "vk/swapchain.h"
 
@@ -48,10 +47,10 @@ class MeddlFixture : public ::testing::Test {
    {
       SwapchainOptions options{};
       _swapchain = std::make_unique<Swapchain>(_instance->get_physical_devices().front().get(),
-                                                  _device.get(),
-                                                  _surface.get(),
-                                                  options,
-                                                  _window->get_framebuffer_size());
+                                               _device.get(),
+                                               _surface.get(),
+                                               options,
+                                               _window->get_framebuffer_size());
    }
    void init_all()
    {
@@ -72,6 +71,23 @@ class MeddlFixture : public ::testing::Test {
 TEST_F(MeddlFixture, Initialization)
 {
    EXPECT_NO_THROW(init_all());
+}
+
+TEST_F(MeddlFixture, CompileShaders)
+{
+   init_all();
+   ShaderCompiler compiler;
+   auto vertex_spirv =
+       compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
+   EXPECT_EQ(vertex_spirv.size(), 376);
+   std::unique_ptr<ShaderModule> vert_mod;
+   EXPECT_NO_THROW(std::make_unique<ShaderModule>(_device.get(), vertex_spirv));
+
+   auto frag_spirv = 
+       compiler.compile(std::filesystem::current_path() / "shader.frag ", shaderc_fragment_shader);
+   EXPECT_EQ(frag_spirv.size(), 143);
+   std::unique_ptr<ShaderModule> frag_mod;
+   EXPECT_NO_THROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
 }
 
 //! @brief
