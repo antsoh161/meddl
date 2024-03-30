@@ -26,7 +26,7 @@ class Debugger {
    void clean_up(VkInstance instance);
 
   private:
-   VkDebugUtilsMessengerEXT _messenger;
+   VkDebugUtilsMessengerEXT _messenger{VK_NULL_HANDLE};
    // Vulkan wants const char*
    std::unordered_map<std::string, VkLayerProperties> _available_validation_layers;
    // TODO: Make this a set

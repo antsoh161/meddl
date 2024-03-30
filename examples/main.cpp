@@ -42,22 +42,6 @@ auto main() -> int
    std::println("vert size: {}", vertex_code.size());
    std::println("frag size: {}", fragment_code.size());
 
-   // shaderc::Compiler compiler;
-   // shaderc::CompileOptions options;
-   // auto vss = readFile("examples/shaders/shader.vert");
-   // auto fss = readFile("examples/shaders/shader.frag");
-   // shaderc::SpvCompilationResult vertResult =
-   //     compiler.CompileGlslToSpv(vss.c_str(),
-   //                               vss.size(),
-   //                               shaderc_shader_kind::shaderc_vertex_shader,
-   //                               "vertex_shader.vert",
-   //                               options);
-   // if (vertResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-   //    std::println("{}", vertResult.GetErrorMessage());
-   // }
-   // else {
-   //    std::println("Success");
-   // }
 
    auto counter = 0;
    while (!glfwWindowShouldClose(*window)) {
