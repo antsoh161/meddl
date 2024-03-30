@@ -5,6 +5,7 @@
 #include "vk/defaults.h"
 #include "vk/device.h"
 #include "vk/instance.h"
+#include "vk/pipeline.h"
 #include "vk/shader.h"
 #include "vk/surface.h"
 #include "vk/swapchain.h"
@@ -52,6 +53,23 @@ class MeddlFixture : public ::testing::Test {
                                                options,
                                                _window->get_framebuffer_size());
    }
+   void init_pipeline()
+   {
+      ShaderCompiler compiler;
+      auto vertex_spirv =
+          compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
+      auto vertex_module = ShaderModule(_device.get(), vertex_spirv);
+
+      auto frag_spirv = compiler.compile(std::filesystem::current_path() / "shader.frag",
+                                         shaderc_fragment_shader);
+      auto frag_module = ShaderModule(_device.get(), frag_spirv);
+
+      _pipeline_layout = std::make_unique<PipelineLayout>(_device.get(), 0);
+      auto color_attachement = defaults::color_attachment(defaults::DEFAULT_IMAGE_FORMAT);
+      _renderpass = std::make_unique<RenderPass>(_device.get(), color_attachement);
+      _graphics_pipeline = std::make_unique<GraphicsPipeline>(
+          vertex_module, frag_module, _device.get(), _pipeline_layout.get(), _renderpass.get());
+   };
    void init_all()
    {
       init_instance();
@@ -59,6 +77,7 @@ class MeddlFixture : public ::testing::Test {
       init_surface();
       init_device();
       init_swapchain();
+      init_pipeline();
    }
    std::optional<Debugger> _debugger{};
    std::unique_ptr<Instance> _instance{};
@@ -66,6 +85,9 @@ class MeddlFixture : public ::testing::Test {
    std::unique_ptr<Surface> _surface{};
    std::unique_ptr<Device> _device{};
    std::unique_ptr<Swapchain> _swapchain{};
+   std::unique_ptr<PipelineLayout> _pipeline_layout{};
+   std::unique_ptr<RenderPass> _renderpass{};
+   std::unique_ptr<GraphicsPipeline> _graphics_pipeline{};
 };
 
 TEST_F(MeddlFixture, Initialization)
@@ -75,7 +97,11 @@ TEST_F(MeddlFixture, Initialization)
 
 TEST_F(MeddlFixture, CompileShaders)
 {
-   init_all();
+   init_instance();
+   init_window();
+   init_surface();
+   init_device();
+
    ShaderCompiler compiler;
    auto vertex_spirv =
        compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
@@ -83,8 +109,8 @@ TEST_F(MeddlFixture, CompileShaders)
    std::unique_ptr<ShaderModule> vert_mod;
    EXPECT_NO_THROW(std::make_unique<ShaderModule>(_device.get(), vertex_spirv));
 
-   auto frag_spirv = 
-       compiler.compile(std::filesystem::current_path() / "shader.frag ", shaderc_fragment_shader);
+   auto frag_spirv =
+       compiler.compile(std::filesystem::current_path() / "shader.frag", shaderc_fragment_shader);
    EXPECT_EQ(frag_spirv.size(), 143);
    std::unique_ptr<ShaderModule> frag_mod;
    EXPECT_NO_THROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
