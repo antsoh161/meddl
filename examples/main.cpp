@@ -1,4 +1,5 @@
 #include <fstream>
+#include <memory>
 #include <print>
 #include <shaderc/shaderc.hpp>
 #include <thread>
@@ -17,7 +18,7 @@ static std::string readFile(const std::string& filename)
    size_t fileSize = (size_t)file.tellg();
    std::string buffer(fileSize, '\0');  // Create string of appropriate size
    file.seekg(0);
-   file.read(buffer.data(), fileSize);
+   file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
    file.close();
    return buffer;
 }
@@ -42,11 +43,11 @@ auto main() -> int
    std::println("vert size: {}", vertex_code.size());
    std::println("frag size: {}", fragment_code.size());
 
-
    auto counter = 0;
+   const auto maxCounter = 50;
    while (!glfwWindowShouldClose(*window)) {
       glfwPollEvents();
-      if (counter >= 50) {
+      if (counter >= maxCounter) {
          window->close();
       }
       using namespace std::literals;
