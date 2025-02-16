@@ -19,7 +19,7 @@ class ShaderModule {
    ShaderModule& operator=(ShaderModule&&) = default;
    ShaderModule(ShaderModule&&) = default;
 
-   operator VkShaderModule () const { return _shader_module; }
+   operator VkShaderModule() const { return _shader_module; }
    [[nodiscard]] VkShaderModule vk() const { return _shader_module; }
 
   private:

@@ -54,7 +54,7 @@ class Window {
    {
       int width = 0, height = 0;
       glfwGetFramebufferSize(window_handle.get(), &width, &height);
-      return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+      return {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)};
    }
 
   private:

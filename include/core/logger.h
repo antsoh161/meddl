@@ -8,9 +8,9 @@
 namespace logger {
 
 enum class LogMedia {
-   LOG_File,
-   LOG_Console,
-   LOG_StdOut,
+   File,
+   Console,
+   StdOut,
 };
 
 enum class LogLevel {
@@ -53,7 +53,7 @@ class AsyncLogger {
   private:
    void log_worker();
 
-   std::optional<LogMedia> _log_media{LogMedia::LOG_StdOut};
+   std::optional<LogMedia> _log_media{LogMedia::StdOut};
    bool _enabled{false};
 
    std::jthread _worker_thread;

@@ -108,7 +108,6 @@ GraphicsPipeline::~GraphicsPipeline()
    {
       vkDestroyPipeline(*_device, _pipeline, _device->get_allocators());
    }
-
 }
 
 PipelineLayout::PipelineLayout(Device* device, VkPipelineLayoutCreateFlags flags) : _device(device)

@@ -107,7 +107,7 @@ Device::Device(PhysicalDevice* physical_device,
       create_info.enabledLayerCount = 0;
    }
 
-   auto res = vkCreateDevice(*_physical_device, &create_info, nullptr, &_device);
+   auto res = vkCreateDevice(_physical_device->vk(), &create_info, nullptr, &_device);
    if (res != VK_SUCCESS) {
       throw std::runtime_error{
           std::format("vkCreateDevice failed with error: {}", static_cast<int32_t>(res))};

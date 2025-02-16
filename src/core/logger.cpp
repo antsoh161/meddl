@@ -17,7 +17,7 @@ void AsyncLogger::start()
 {
    if (!_log_media.has_value()) {
       log("No log media selected, defaulting to stdout");
-      _log_media = LogMedia::LOG_StdOut;
+      _log_media = LogMedia::StdOut;
    }
    _enabled = true;
    _worker_thread = std::jthread(&AsyncLogger::log_worker, this);
@@ -47,11 +47,11 @@ void AsyncLogger::log_worker()
 
          // Do writes here.. Spawn individual writers...?
          switch (_log_media.value()) {
-            case LogMedia::LOG_File:
+            case LogMedia::File:
                break;
-            case LogMedia::LOG_Console:
+            case LogMedia::Console:
                break;
-            case LogMedia::LOG_StdOut:
+            case LogMedia::StdOut:
                std::cout << "[" << msg.timestamp << "] " << msg.message << "\n";
                break;
          }
