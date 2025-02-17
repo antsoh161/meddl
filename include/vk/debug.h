@@ -15,7 +15,6 @@ class Debugger {
    Debugger(const Debugger&) = delete;
    Debugger& operator=(const Debugger&) = delete;
 
-   void verify_validation_layers();
    const std::unordered_map<std::string, VkLayerProperties>& get_available_validation_layers()
        const;
    const std::vector<std::string>& get_active_validation_layers() const;

@@ -60,10 +60,10 @@ const VkPhysicalDeviceFeatures& PhysicalDevice::get_features() const
 
 //! Device
 Device::Device(PhysicalDevice* physical_device,
-                     const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
-                     const std::unordered_set<std::string>& device_extensions,
-                     const std::optional<VkPhysicalDeviceFeatures>& device_features,
-                     const std::optional<Debugger>& debugger)
+               const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
+               const std::unordered_set<std::string>& device_extensions,
+               const std::optional<VkPhysicalDeviceFeatures>& device_features,
+               const std::optional<Debugger>& debugger)
     : _instance(physical_device->instance()), _physical_device((physical_device))
 {
    std::vector<VkDeviceQueueCreateInfo> create_infos{};
@@ -100,10 +100,12 @@ Device::Device(PhysicalDevice* physical_device,
       const auto& layers = debugger->get_active_validation_layers();
       for (const auto& layer : layers) {
          layers_cstyle.push_back(layer.c_str());
+         std::println("{}", layer);
       }
       create_info.ppEnabledLayerNames = layers_cstyle.data();
    }
    else {
+      throw std::runtime_error("Debugger is required for device creation");
       create_info.enabledLayerCount = 0;
    }
 

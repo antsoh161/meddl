@@ -1,5 +1,5 @@
 CompileFlags:
-    Add: [-xc++, -Wall]
+    Add: [-xc++, -Wall, -std=c++23, -D__cpp_concepts=202002L]
     Remove: [-W*, -m*, --sysroot]
     Compiler: g++
 Index:

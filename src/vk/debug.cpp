@@ -1,7 +1,7 @@
+#include "vk/debug.h"
+
 #include <iostream>
 #include <stdexcept>
-
-#include "vk/debug.h"
 
 Debugger::Debugger()
 {

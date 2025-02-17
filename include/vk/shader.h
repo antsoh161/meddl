@@ -12,7 +12,7 @@ namespace meddl::vk {
 class ShaderModule {
   public:
    ShaderModule(Device* device, std::vector<uint32_t> code);
-   ~ShaderModule();
+   virtual ~ShaderModule();
 
    ShaderModule& operator=(const ShaderModule&) = delete;
    ShaderModule(const ShaderModule&) = delete;
