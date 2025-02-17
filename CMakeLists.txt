@@ -14,7 +14,7 @@ set(BUILD_SHARED_LIBS ON)
 set(FETCHCONTENT_QUIET OFF) # Debug
 if(BUILD_TESTS)
    enable_testing()
-   add_subdirectory(third_party/googletest)
+   add_subdirectory(third_party/catch2)
 endif()
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)

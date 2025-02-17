@@ -1,7 +1,12 @@
-#include <gtest/gtest.h>
+#include <catch2/catch_session.hpp>
 
-auto main(int argc, char *argv[]) -> int
-{
-   ::testing::InitGoogleTest(&argc, argv);
-   return RUN_ALL_TESTS();
+// If you need custom setup/teardown
+int main(int argc, char* argv[]) {
+    // Setup code here if needed
+    
+    int result = Catch::Session().run(argc, argv);
+    
+    // Cleanup code here if needed
+    
+    return result;
 }
