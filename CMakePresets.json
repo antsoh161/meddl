@@ -1,49 +1,77 @@
 {
-  "version": 6,
-  "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 28,
-    "patch": 3
-  },
-  "configurePresets": [
-    {
-      "name": "default",
-      "hidden": true,
-      "displayName": "default build using ninja generator",
-      "binaryDir": "build",
-      "generator": "Ninja"
-    },
-    {
-      "name": "Debug",
-      "inherits": "default",
-      "displayName": "Debug",
-      "description": "Debug symbols included",
-      "binaryDir": "build/Debug",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+   "version": 6,
+   "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 31,
+      "patch": 4
+   },
+   "configurePresets": [
+      {
+         "name": "default",
+         "hidden": true,
+         "displayName": "default build using ninja generator",
+         "binaryDir": "build",
+         "generator": "Ninja"
+      },
+      {
+         "name": "Debug",
+         "inherits": "default",
+         "displayName": "Debug",
+         "description": "Debug symbols included",
+         "binaryDir": "build/Debug",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+         }
+      },
+      {
+         "name": "Debug-ci",
+         "inherits": "Debug",
+         "displayName": "Debug CI",
+         "description": "Debug build with CI test launcher",
+         "binaryDir": "build/Debug-ci",
+         "cacheVariables": {
+            "CMAKE_TEST_LAUNCHER": "${sourceDir}/.github/workflows/run_test.sh"
+         }
+      },
+      {
+         "name": "Release",
+         "inherits": "default",
+         "displayName": "Release",
+         "description": "Release symbols included",
+         "binaryDir": "build/Release",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+         }
+      },
+      {
+         "name": "Release-ci",
+         "inherits": "Release",
+         "displayName": "Release CI",
+         "description": "Release build with CI test launcher",
+         "binaryDir": "build/Release-ci",
+         "cacheVariables": {
+            "CMAKE_TEST_LAUNCHER": "${sourceDir}/.github/workflows/run_test.sh"
+         }
       }
-    },
-    {
-      "name": "Release",
-      "inherits": "default",
-      "displayName": "Release",
-      "description": "Release symbols included",
-      "binaryDir": "build/Release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+   ],
+   "buildPresets": [
+      {
+         "name": "Debug",
+         "configurePreset": "Debug"
+      },
+      {
+         "name": "Debug-ci",
+         "configurePreset": "Debug-ci"
+      },
+      {
+         "name": "Release",
+         "configurePreset": "Release"
+      },
+      {
+         "name": "Release-ci",
+         "configurePreset": "Release-ci"
       }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "Debug",
-      "configurePreset": "Debug"
-    },
-    {
-      "name": "Release",
-      "configurePreset": "Release"
-    }
-  ]
+   ]
 }

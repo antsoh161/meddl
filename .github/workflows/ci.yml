@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     container: 
-      image: ghcr.io/antsoh161/ubuntu2310-vulkan:latest
+      image: ghcr.io/antsoh161/ubuntu-vulkan-24.04:latest
       credentials:
         username: antsoh161
         password: ${{ secrets.MEDDL_DOCKER_REGISTRY_TOKEN }}
@@ -21,11 +21,11 @@ jobs:
         # os: [ubuntu-latest, windows-latest]
         os: [ubuntu-latest]
         #build_type: [Release, Debug]
-        build_type: [Release]
+        build_type: [Release-ci]
         #compilers: [ {c: gcc, cpp: g++}, {c: clang, cpp: clang++}, {c: cl, cpp: cl}]
         compilers:
         - {c: gcc, cpp: g++}
-        - {c: clang-17, cpp: clang++-17} 
+        - {c: clang-19, cpp: clang++-19} 
 
     steps:
     - uses: actions/checkout@v4
@@ -35,3 +35,6 @@ jobs:
 
     - name: cmake build
       run: cmake --build --preset ${{ matrix.build_type }}
+
+    - name: ctest
+      run: ctest --test-dir build/${{ matrix.build_type }} --output-on-failure
