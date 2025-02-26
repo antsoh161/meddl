@@ -22,7 +22,7 @@ class MeddlFixture {
       glfwInit();
       glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
       glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-      glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Headless for tests
+      glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // Headless for tests
       auto app_info = meddl::vk::defaults::app_info();
       auto debug_info = meddl::vk::defaults::debug_info();
       _instance = std::make_unique<Instance>(app_info, debug_info, _debugger);
@@ -63,9 +63,17 @@ class MeddlFixture {
       _swapchain = std::make_unique<Swapchain>(_instance->get_physical_devices().front().get(),
                                                _device.get(),
                                                _surface.get(),
+                                               _renderpass.get(),
                                                options,
                                                _window->get_framebuffer_size());
    }
+
+   void init_renderpass()
+   {
+      auto color_attachement = defaults::color_attachment(defaults::DEFAULT_IMAGE_FORMAT);
+      _renderpass = std::make_unique<RenderPass>(_device.get(), color_attachement);
+   }
+
    void init_pipeline()
    {
       ShaderCompiler compiler;
@@ -78,8 +86,6 @@ class MeddlFixture {
       auto frag_module = ShaderModule(_device.get(), frag_spirv);
 
       _pipeline_layout = std::make_unique<PipelineLayout>(_device.get(), 0);
-      auto color_attachement = defaults::color_attachment(defaults::DEFAULT_IMAGE_FORMAT);
-      _renderpass = std::make_unique<RenderPass>(_device.get(), color_attachement);
       _graphics_pipeline = std::make_unique<GraphicsPipeline>(
           vertex_module, frag_module, _device.get(), _pipeline_layout.get(), _renderpass.get());
    };
@@ -98,6 +104,7 @@ class MeddlFixture {
       init_window();
       init_surface();
       init_device();
+      init_renderpass();
       init_swapchain();
       init_pipeline();
       init_command();
@@ -156,12 +163,35 @@ TEST_CASE_METHOD(MeddlFixture, "CommandBufferBadOrder")
    result = _command_buffer->end();
    REQUIRE(result.error() == CommandError::NotRecording);
 
-
    result = _command_buffer->reset();
    REQUIRE(result.has_value());
    result = _command_buffer->reset();
    REQUIRE(result.error() == CommandError::NotExecutable);
+}
 
+TEST_CASE_METHOD(MeddlFixture, "Renderpass")
+{
+   init_all();
+   REQUIRE_NOTHROW([&] {
+      REQUIRE(_command_buffer->begin().has_value());
+
+      VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+      VkRect2D render_area{.offset = {0, 0}, .extent = _swapchain->extent()};
+
+      REQUIRE(_command_buffer
+                  ->begin_renderpass(
+                      _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[0])
+                  .has_value());
+
+      REQUIRE(_command_buffer->set_viewport(defaults::default_viewport(_swapchain->extent()))
+                  .has_value());
+      REQUIRE(_command_buffer->set_scissor(defaults::default_scissor(_swapchain->extent()))
+                  .has_value());
+      REQUIRE(_command_buffer->bind_pipeline(_graphics_pipeline.get()).has_value());
+      REQUIRE(_command_buffer->draw().has_value());
+      REQUIRE(_command_buffer->end_renderpass().has_value());
+      REQUIRE(_command_buffer->end().has_value());
+   }());
 }
 
 TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
@@ -180,8 +210,7 @@ TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), vertex_spirv));
 
    auto frag_spirv =
-       compiler.compile(std::filesystem::current_path() / "shader.frag",
-       shaderc_fragment_shader);
+       compiler.compile(std::filesystem::current_path() / "shader.frag", shaderc_fragment_shader);
    REQUIRE(frag_spirv.size() == 143);
    std::unique_ptr<ShaderModule> frag_mod;
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
