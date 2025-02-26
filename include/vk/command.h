@@ -5,6 +5,9 @@
 #include "vk/defaults.h"
 #include "vk/device.h"
 #include "vk/error.h"
+#include "vk/pipeline.h"
+#include "vk/renderpass.h"
+#include "vk/swapchain.h"
 
 namespace meddl::vk {
 
@@ -53,16 +56,32 @@ class CommandBuffer {
    CommandBuffer& operator=(CommandBuffer&& other) noexcept;
 
    [[nodiscard]] VkCommandBuffer vk() const { return _command_buffer; }
+
    //! The commands
-   std::expected<void, meddl::vk::CommandError> begin(
+   std::expected<void, CommandError> begin(
        VkCommandBufferUsageFlags flags = defaults::DEFAULT_BUFFER_USAGE_FLAGS);
-   std::expected<void, meddl::vk::CommandError> end();
-   std::expected<void, meddl::vk::CommandError> reset(VkCommandBufferResetFlags flags = 0);
+   std::expected<void, CommandError> end();
+   std::expected<void, CommandError> reset(VkCommandBufferResetFlags flags = 0);
+
    [[nodiscard]] const State state() const { return _state; }
 
+   //! Renderpass
+   std::expected<void, meddl::vk::CommandError> begin_renderpass(const RenderPass* renderpass,
+                                                                 const Swapchain* swapchain,
+                                                                 VkFramebuffer framebuffer);
+
+   std::expected<void, CommandError> bind_pipeline(const GraphicsPipeline* pipeline);
+
+   std::expected<void, CommandError> set_viewport(const VkViewport& viewport);
+
+   std::expected<void, CommandError> set_scissor(const VkRect2D& scissor);
+
+   std::expected<void, CommandError> draw();
+   std::expected<void, CommandError> end_renderpass();
+
   private:
-   Device* _device;
-   CommandPool* _pool;
+   Device* _device{nullptr};
+   CommandPool* _pool{nullptr};
    VkCommandBuffer _command_buffer{VK_NULL_HANDLE};
    State _state{State::Ready};
 };

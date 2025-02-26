@@ -40,6 +40,8 @@ class GraphicsPipeline {
 
    GraphicsPipeline(GraphicsPipeline&&) = default;
    GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
+
+   [[nodiscard]] VkPipeline vk() const { return _pipeline; }
   private:
    PipelineLayout* _layout;
    Device* _device;

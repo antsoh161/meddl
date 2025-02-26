@@ -50,6 +50,7 @@ SwapchainDetails get_details(PhysicalDevice* device, Surface* surface)
 Swapchain::Swapchain(PhysicalDevice* physical_device,
                            Device* device,
                            Surface* surface,
+                           const RenderPass* renderpass,
                            const SwapchainOptions& options,
                            const glfw::FrameBufferSize& fbs)
     : _device(device), _surface(surface)
@@ -78,19 +79,18 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
       create_info.imageColorSpace = defaults::DEFAULT_IMAGE_COLOR_SPACE;
    }
 
-   VkExtent2D extent;
    if (_details._capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-      extent = _details._capabilities.currentExtent;
+      _extent2d = _details._capabilities.currentExtent;
    }
    else {
-      extent = {std::clamp(fbs.width,
+      _extent2d = {std::clamp(fbs.width,
                            _details._capabilities.minImageExtent.width,
                            _details._capabilities.maxImageExtent.width),
                 std::clamp(fbs.height,
                            _details._capabilities.minImageExtent.height,
                            _details._capabilities.maxImageExtent.height)};
    }
-   create_info.imageExtent = extent;
+   create_info.imageExtent = _extent2d;
    create_info.imageArrayLayers = options._image_array_layers;
    create_info.imageUsage = options._image_usage_flags;
 
@@ -156,9 +156,28 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
    for (size_t i = 0; i < _images.size(); i++) {
       image_view_info.image = _images[i];
       if (vkCreateImageView(*_device, &image_view_info, nullptr, &_image_views[i]) != VK_SUCCESS) {
-         std::println("createImageView failed..");
+         throw std::runtime_error("createImageView failed..");
       }
    }
+   _framebuffers.resize(_image_views.size());
+
+   VkFramebufferCreateInfo framebuffer_info{};
+   framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+   framebuffer_info.renderPass = renderpass->vk();
+   framebuffer_info.attachmentCount = 1; // Todo: 1?
+   framebuffer_info.width = _extent2d.width;
+   framebuffer_info.height = _extent2d.height;
+   framebuffer_info.layers = 1; // Todo: 1?
+   for(size_t i = 0; i < _image_views.size(); i++)
+   {
+      framebuffer_info.pAttachments = &_image_views.at(i);
+      // TODO: Allocator
+      if(vkCreateFramebuffer(_device->vk(), &framebuffer_info, nullptr, &_framebuffers.at(i)) != VK_SUCCESS)
+      {
+         throw std::runtime_error("createFramebuffer failed..");
+      }
+   }
+
 }
 
 Swapchain::~Swapchain()
