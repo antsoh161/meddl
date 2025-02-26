@@ -6,6 +6,7 @@
 #include "vk/device.h"
 #include "app/window.h"
 #include "vk/hash.hpp"
+#include "vk/renderpass.h"
 
 namespace meddl::vk {
 
@@ -35,6 +36,7 @@ class Swapchain {
    Swapchain(PhysicalDevice* physical_device,
                 Device* device,
                 Surface* surface,
+                const RenderPass* renderpass,
                 const SwapchainOptions& options,
                 const glfw::FrameBufferSize& fbs);
    ~Swapchain();
@@ -46,15 +48,22 @@ class Swapchain {
 
    [[nodiscard]] std::vector<VkImageView>& get_image_views();
 
+   [[nodiscard]] VkExtent2D extent() const { return _extent2d; }
+   [[nodiscard]] VkSwapchainKHR vk() const { return _swapchain; }
+
+   [[nodiscard]] const std::vector<VkFramebuffer>& get_framebuffers() const { return _framebuffers; }
+
   private:
    VkSwapchainKHR _swapchain{VK_NULL_HANDLE};
    Device* _device;
    Surface* _surface;
 
    SwapchainDetails _details{};
+   VkExtent2D _extent2d{};
    std::unordered_set<VkSurfaceFormatKHR> _formats{};
    std::unordered_set<VkPresentModeKHR> _present_modes{};
    std::vector<VkImage> _images{};
    std::vector<VkImageView> _image_views{};
+   std::vector<VkFramebuffer> _framebuffers{};
 };
 }  // namespace meddl::vk

@@ -36,9 +36,11 @@ constexpr VkCompositeAlphaFlagBitsKHR DEFAULT_COMPOSITE_ALPHA_FLAG_BITS =
 constexpr bool DEFAULT_SWAPCHAIN_CLIPPED = true;
 
 //! CommandPool/CommandBuffer creation
-constexpr VkCommandPoolCreateFlags DEFAULT_COMMAND_POOL_FLAGS = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+constexpr VkCommandPoolCreateFlags DEFAULT_COMMAND_POOL_FLAGS =
+    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 constexpr uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 1;
-constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
+    VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 //! Device Creation
 [[maybe_unused]] static const std::unordered_set<std::string> device_extensions()
@@ -74,7 +76,7 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS = VK_COMMAND_BUFF
 }
 
 //! Renderpass Creation
-[[maybe_unused]] static constexpr VkAttachmentDescription color_attachment(VkFormat format)
+[[maybe_unused]] static constexpr VkAttachmentDescription color_attachment(const VkFormat& format)
 {
    return {0,
            format,
@@ -87,17 +89,36 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS = VK_COMMAND_BUFF
            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 }
 
-[[maybe_unused]] static constexpr VkAttachmentDescription depth_attachment(VkFormat format)
+[[maybe_unused]] static constexpr VkAttachmentDescription depth_attachment(const VkFormat& format)
 {
-   return {0,
-           format,
-           VK_SAMPLE_COUNT_1_BIT,
-           VK_ATTACHMENT_LOAD_OP_CLEAR,
-           VK_ATTACHMENT_STORE_OP_STORE,
-           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-           VK_ATTACHMENT_STORE_OP_DONT_CARE,
-           VK_IMAGE_LAYOUT_UNDEFINED,
-           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+   return {.flags = 0,
+           .format = format,
+           .samples = VK_SAMPLE_COUNT_1_BIT,
+           .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+           .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+           .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+           .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+           .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+           .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+}
+
+[[maybe_unused]] static constexpr VkViewport default_viewport(const VkExtent2D& extent)
+{
+   return {
+       .x = 0.0f,
+       .y = 0.0f,
+       .width = static_cast<float>(extent.width),
+       .height = static_cast<float>(extent.height),
+       .minDepth = 0.0f,
+       .maxDepth = 1.0f,
+   };
+}
+
+[[maybe_unused]] static constexpr VkRect2D default_scissor(const VkExtent2D& extent) {
+   return {
+      .offset = {0, 0},
+      .extent = extent,
+   };
 }
 
 }  // namespace meddl::vk::defaults
