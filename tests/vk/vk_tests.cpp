@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <print>
 
+#include "vk/async.h"
 #include "vk/command.h"
 #include "vk/debug.h"
 #include "vk/defaults.h"
@@ -13,7 +14,24 @@
 
 using namespace meddl::vk;
 using namespace meddl::glfw;
+
 // NOLINTBEGIN (cppcoreguidelines-avoid-do-while)
+namespace {
+struct Syncs {
+   void init(Device* device)
+   {
+      _fence = std::make_unique<Fence>(device);
+      std::println("Fence init");
+      _imageAvailable = std::make_unique<Semaphore>(device);
+      std::println("ImageAvailable init");
+      _renderFinished = std::make_unique<Semaphore>(device);
+      std::println("RenderFinished init");
+   }
+   std::unique_ptr<Fence> _fence{};
+   std::unique_ptr<Semaphore> _imageAvailable{};
+   std::unique_ptr<Semaphore> _renderFinished{};
+};
+}  // namespace
 
 class MeddlFixture {
   public:
@@ -77,17 +95,22 @@ class MeddlFixture {
    void init_pipeline()
    {
       ShaderCompiler compiler;
-      auto vertex_spirv =
+      _vert_spirv =
           compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
-      auto vertex_module = ShaderModule(_device.get(), vertex_spirv);
 
-      auto frag_spirv = compiler.compile(std::filesystem::current_path() / "shader.frag",
-                                         shaderc_fragment_shader);
-      auto frag_module = ShaderModule(_device.get(), frag_spirv);
+      _frag_spirv = compiler.compile(std::filesystem::current_path() / "shader.frag",
+                                     shaderc_fragment_shader);
+
+      _frag_mod = std::make_unique<ShaderModule>(_device.get(), _frag_spirv);
+      _vert_mod = std::make_unique<ShaderModule>(_device.get(), _vert_spirv);
+      std::println(("frag size: {}, vert size: {}"), _frag_spirv.size(), _vert_spirv.size());
 
       _pipeline_layout = std::make_unique<PipelineLayout>(_device.get(), 0);
-      _graphics_pipeline = std::make_unique<GraphicsPipeline>(
-          vertex_module, frag_module, _device.get(), _pipeline_layout.get(), _renderpass.get());
+      _graphics_pipeline = std::make_unique<GraphicsPipeline>(_vert_mod.get(),
+                                                              _frag_mod.get(),
+                                                              _device.get(),
+                                                              _pipeline_layout.get(),
+                                                              _renderpass.get());
    };
 
    void init_command()
@@ -97,6 +120,7 @@ class MeddlFixture {
           _device.get(), 0, meddl::vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
       _command_buffer = std::make_unique<CommandBuffer>(_device.get(), _command_pool.get());
    }
+
    void init_all()
    {
       init_debugger();
@@ -104,6 +128,7 @@ class MeddlFixture {
       init_window();
       init_surface();
       init_device();
+      _syncs.init(_device.get());
       init_renderpass();
       init_swapchain();
       init_pipeline();
@@ -114,12 +139,18 @@ class MeddlFixture {
    std::shared_ptr<Window> _window{};
    std::unique_ptr<Surface> _surface{};
    std::unique_ptr<Device> _device{};
+   Syncs _syncs{};
    std::unique_ptr<Swapchain> _swapchain{};
    std::unique_ptr<PipelineLayout> _pipeline_layout{};
    std::unique_ptr<RenderPass> _renderpass{};
    std::unique_ptr<GraphicsPipeline> _graphics_pipeline{};
    std::unique_ptr<CommandPool> _command_pool{};
    std::unique_ptr<CommandBuffer> _command_buffer{};
+
+   std::unique_ptr<ShaderModule> _frag_mod{};
+   std::unique_ptr<ShaderModule> _vert_mod{};
+   std::vector<uint32_t> _frag_spirv{};
+   std::vector<uint32_t> _vert_spirv{};
 };
 
 TEST_CASE_METHOD(MeddlFixture, "Initialization")
@@ -206,13 +237,11 @@ TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
    auto vertex_spirv =
        compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
    REQUIRE(vertex_spirv.size() == 376);
-   std::unique_ptr<ShaderModule> vert_mod;
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), vertex_spirv));
 
    auto frag_spirv =
        compiler.compile(std::filesystem::current_path() / "shader.frag", shaderc_fragment_shader);
    REQUIRE(frag_spirv.size() == 143);
-   std::unique_ptr<ShaderModule> frag_mod;
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
 }
 // NOLINTEND
