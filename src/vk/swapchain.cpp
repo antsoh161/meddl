@@ -186,9 +186,13 @@ Swapchain::~Swapchain()
    {
       for(auto image_view : _image_views)
       {
-         vkDestroyImageView(*_device, image_view, _device->get_allocators());
+         vkDestroyImageView(_device->vk(), image_view, _device->get_allocators());
       }
-      vkDestroySwapchainKHR(*_device, _swapchain, _device->get_allocators());
+      vkDestroySwapchainKHR(_device->vk(), _swapchain, _device->get_allocators());
+   }
+   for(auto framebuffer : _framebuffers)
+   {
+      vkDestroyFramebuffer(_device->vk(), framebuffer, _device->get_allocators());
    }
 }
 

@@ -11,7 +11,7 @@ namespace meddl::vk {
 
 class ShaderModule {
   public:
-   ShaderModule(Device* device, std::vector<uint32_t> code);
+   ShaderModule(Device* device, const std::vector<uint32_t>& code);
    virtual ~ShaderModule();
 
    ShaderModule& operator=(const ShaderModule&) = delete;
@@ -19,7 +19,6 @@ class ShaderModule {
    ShaderModule& operator=(ShaderModule&&) = default;
    ShaderModule(ShaderModule&&) = default;
 
-   operator VkShaderModule() const { return _shader_module; }
    [[nodiscard]] VkShaderModule vk() const { return _shader_module; }
 
   private:
