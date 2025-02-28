@@ -28,8 +28,8 @@ private:
 
 class GraphicsPipeline {
   public:
-   GraphicsPipeline(const ShaderModule& vert_shader,
-                    const ShaderModule& frag_shader,
+   GraphicsPipeline(ShaderModule* vert_shader,
+                    ShaderModule* frag_shader,
                     Device* device,
                     PipelineLayout* layout,
                     RenderPass* render_pass);
@@ -45,6 +45,6 @@ class GraphicsPipeline {
   private:
    PipelineLayout* _layout;
    Device* _device;
-   VkPipeline _pipeline;
+   VkPipeline _pipeline{VK_NULL_HANDLE};
 };
 }  // namespace meddl::vk

@@ -16,7 +16,7 @@ std::optional<std::string> read_file(const std::filesystem::path& path)
 }
 }  // namespace
 
-ShaderModule::ShaderModule(Device* device, std::vector<uint32_t> code) : _device(device)
+ShaderModule::ShaderModule(Device* device, const std::vector<uint32_t>& code) : _device(device)
 {
    VkShaderModuleCreateInfo create_info = {};
    create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
