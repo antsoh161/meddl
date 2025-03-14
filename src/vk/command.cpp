@@ -23,6 +23,35 @@ CommandPool::CommandPool(Device* device,
    }
 }
 
+CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
+    : _device(other._device), _pool(other._pool), _command_buffer(other._command_buffer), _state(other._state)
+{
+    other._command_buffer = VK_NULL_HANDLE;
+    other._device = nullptr;
+    other._pool = nullptr;
+    other._state = State::Ready;
+}
+
+CommandBuffer& CommandBuffer::operator=(CommandBuffer&& other) noexcept
+{
+    if (this != &other) {
+        if (_command_buffer != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(_device->vk(), _pool->vk(), 1, &_command_buffer);
+        }
+        
+        _device = other._device;
+        _pool = other._pool;
+        _command_buffer = other._command_buffer;
+        _state = other._state;
+        
+        other._command_buffer = VK_NULL_HANDLE;
+        other._device = nullptr;
+        other._pool = nullptr;
+        other._state = State::Ready;
+    }
+    return *this;
+}
+
 CommandPool::~CommandPool()
 {
    if (_command_pool) {
@@ -107,7 +136,7 @@ std::expected<void, CommandError> CommandBuffer::begin_renderpass(const RenderPa
    begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
    begin_info.renderPass = renderpass->vk();
    begin_info.framebuffer = framebuffer;
-   begin_info.renderArea.offset = {0, 0};
+   begin_info.renderArea.offset = {.x = 0, .y = 0};
    begin_info.renderArea.extent = swapchain->extent();
    begin_info.clearValueCount = 1;
    begin_info.pClearValues = &clear_values;
@@ -149,6 +178,10 @@ std::expected<void, CommandError> CommandBuffer::set_scissor(const VkRect2D& sci
 
 std::expected<void, CommandError> CommandBuffer::draw()
 {
+   if (_state != State::Recording) {
+      return std::unexpected(meddl::vk::CommandError::NotRecording);
+   }
+   vkCmdDraw(_command_buffer, 3, 1, 0, 0);
    return {};
 }
 

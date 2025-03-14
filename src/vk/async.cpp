@@ -15,15 +15,36 @@ Lock<T>::Lock(Device* device, T& sync_obj, uint64_t timeout)
 
 Fence::Fence(Device* device) : _device{device}
 {
+   std::println("Creating fence");
    VkFenceCreateInfo fence_info{};
    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-   fence_info.flags = 0;
+   fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
    auto res = vkCreateFence(_device->vk(), &fence_info, nullptr, &_fence);
    if (res != VK_SUCCESS) {
       throw std::runtime_error{
           std::format("vkCreateFence failed with error: {}", static_cast<int32_t>(res))};
    }
+}
+
+Fence::Fence(Fence&& other) noexcept : _device{other._device}, _fence{other._fence}
+{
+   other._device = VK_NULL_HANDLE;
+   other._fence = VK_NULL_HANDLE;
+}
+
+Fence& Fence::operator=(Fence&& other) noexcept
+{
+   if (this != &other) {
+      if (_fence != VK_NULL_HANDLE) {
+         vkDestroyFence(_device->vk(), _fence, nullptr);
+      }
+      _device = other._device;
+      _fence = other._fence;
+      other._device = VK_NULL_HANDLE;
+      other._fence = VK_NULL_HANDLE;
+   }
+   return *this;
 }
 
 void Fence::wait(Device* device, uint64_t timeout)
@@ -39,6 +60,7 @@ void Fence::reset(Device* device)
 Fence::~Fence()
 {
    if (_fence) {
+      std::println("Destroying fence");
       vkDestroyFence(_device->vk(), _fence, nullptr);
    }
 }
@@ -53,6 +75,28 @@ Semaphore::Semaphore(Device* device) : _device{device}
           std::format("vkCreateSemaphore failed with error: {}", static_cast<int32_t>(res))};
    }
 }
+
+Semaphore::Semaphore(Semaphore&& other) noexcept
+    : _device{other._device}, _semaphore{other._semaphore}
+{
+   other._device = VK_NULL_HANDLE;
+   other._semaphore = VK_NULL_HANDLE;
+}
+
+Semaphore& Semaphore::operator=(Semaphore&& other) noexcept
+{
+   if (this != &other) {
+      if (_semaphore != VK_NULL_HANDLE) {
+         vkDestroySemaphore(_device->vk(), _semaphore, nullptr);
+      }
+      _device = other._device;
+      _semaphore = other._semaphore;
+      other._device = VK_NULL_HANDLE;
+      other._semaphore = VK_NULL_HANDLE;
+   }
+   return *this;
+}
+
 Semaphore::~Semaphore()
 {
    if (_semaphore) {
