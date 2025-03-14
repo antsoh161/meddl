@@ -10,8 +10,8 @@ class Fence {
    Fence() = delete;
    Fence(Device* device);
    ~Fence();
-   Fence(Fence&&) = default;
-   Fence& operator=(Fence&&) = default;
+   Fence(Fence&&) noexcept;
+   Fence& operator=(Fence&&) noexcept;
    Fence(const Fence&) = delete;
    Fence& operator=(const Fence&) = delete;
 
@@ -31,8 +31,9 @@ public:
    ~Semaphore();
     Semaphore(const Semaphore&) = delete;
     Semaphore& operator=(const Semaphore&) = delete;
-    Semaphore(Semaphore&&) = default;
-    Semaphore& operator=(Semaphore&&) = default;
+    Semaphore(Semaphore&&) noexcept;
+    Semaphore& operator=(Semaphore&&) noexcept;
+
    [[nodiscard]] VkSemaphore vk() const {return _semaphore;}
 
 private:
