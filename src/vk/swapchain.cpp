@@ -45,14 +45,13 @@ SwapchainDetails get_details(PhysicalDevice* device, Surface* surface)
 }
 };  // namespace
 
-
 //! New
 Swapchain::Swapchain(PhysicalDevice* physical_device,
-                           Device* device,
-                           Surface* surface,
-                           const RenderPass* renderpass,
-                           const SwapchainOptions& options,
-                           const glfw::FrameBufferSize& fbs)
+                     Device* device,
+                     Surface* surface,
+                     const RenderPass* renderpass,
+                     const SwapchainOptions& options,
+                     const glfw::FrameBufferSize& fbs)
     : _device(device), _surface(surface)
 {
    _details = get_details(physical_device, surface);
@@ -83,12 +82,12 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
       _extent2d = _details._capabilities.currentExtent;
    }
    else {
-      _extent2d = {std::clamp(fbs.width,
-                           _details._capabilities.minImageExtent.width,
-                           _details._capabilities.maxImageExtent.width),
-                std::clamp(fbs.height,
-                           _details._capabilities.minImageExtent.height,
-                           _details._capabilities.maxImageExtent.height)};
+      _extent2d = {.width = std::clamp(fbs.width,
+                                       _details._capabilities.minImageExtent.width,
+                                       _details._capabilities.maxImageExtent.width),
+                   .height = std::clamp(fbs.height,
+                                        _details._capabilities.minImageExtent.height,
+                                        _details._capabilities.maxImageExtent.height)};
    }
    create_info.imageExtent = _extent2d;
    create_info.imageArrayLayers = options._image_array_layers;
@@ -164,34 +163,29 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
    VkFramebufferCreateInfo framebuffer_info{};
    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
    framebuffer_info.renderPass = renderpass->vk();
-   framebuffer_info.attachmentCount = 1; // Todo: 1?
+   framebuffer_info.attachmentCount = 1;  // Todo: 1?
    framebuffer_info.width = _extent2d.width;
    framebuffer_info.height = _extent2d.height;
-   framebuffer_info.layers = 1; // Todo: 1?
-   for(size_t i = 0; i < _image_views.size(); i++)
-   {
+   framebuffer_info.layers = 1;  // Todo: 1?
+   for (size_t i = 0; i < _image_views.size(); i++) {
       framebuffer_info.pAttachments = &_image_views.at(i);
       // TODO: Allocator
-      if(vkCreateFramebuffer(_device->vk(), &framebuffer_info, nullptr, &_framebuffers.at(i)) != VK_SUCCESS)
-      {
+      if (vkCreateFramebuffer(_device->vk(), &framebuffer_info, nullptr, &_framebuffers.at(i)) !=
+          VK_SUCCESS) {
          throw std::runtime_error("createFramebuffer failed..");
       }
    }
-
 }
 
 Swapchain::~Swapchain()
 {
-   if(_swapchain)
-   {
-      for(auto image_view : _image_views)
-      {
+   if (_swapchain) {
+      for (auto image_view : _image_views) {
          vkDestroyImageView(_device->vk(), image_view, _device->get_allocators());
       }
       vkDestroySwapchainKHR(_device->vk(), _swapchain, _device->get_allocators());
    }
-   for(auto framebuffer : _framebuffers)
-   {
+   for (auto framebuffer : _framebuffers) {
       vkDestroyFramebuffer(_device->vk(), framebuffer, _device->get_allocators());
    }
 }

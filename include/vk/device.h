@@ -72,11 +72,11 @@ class Device {
    // TODO: Allocator
    VkAllocationCallbacks* get_allocators() { return nullptr; }
 
+  std::vector<Queue> _queues{};
   private:
    VkDevice _device{};
    Instance* _instance;
    PhysicalDevice* _physical_device;
    std::vector<DeviceExtensions> _extensions{};
-   std::vector<Queue> _queues{};
 };
 }  // namespace meddl::vk

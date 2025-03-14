@@ -27,6 +27,8 @@ class Queue {
    Queue& operator=(Queue&&) = default;
    ~Queue() = default;
 
+   [[nodiscard]] VkQueue vk() const { return _queue; }
+
   private:
    QueueConfiguration _configuration;
    uint32_t _queue_index{};
