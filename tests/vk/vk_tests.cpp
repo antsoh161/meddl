@@ -22,25 +22,33 @@ struct Syncs {
    {
       _fence = std::make_unique<Fence>(device);
       std::println("Fence init");
-      _imageAvailable = std::make_unique<Semaphore>(device);
+      _image_available = std::make_unique<Semaphore>(device);
       std::println("ImageAvailable init");
       _renderFinished = std::make_unique<Semaphore>(device);
       std::println("RenderFinished init");
    }
    std::unique_ptr<Fence> _fence{};
-   std::unique_ptr<Semaphore> _imageAvailable{};
+   std::unique_ptr<Semaphore> _image_available{};
    std::unique_ptr<Semaphore> _renderFinished{};
 };
 }  // namespace
 
 class MeddlFixture {
   public:
+   ~MeddlFixture()
+   {
+      if (_device) {
+         vkDeviceWaitIdle(_device->vk());
+      }
+   }
    void init_instance()
    {
       glfwInit();
       glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
       glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+#ifdef CI
       glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // Headless for tests
+#endif
       auto app_info = meddl::vk::defaults::app_info();
       auto debug_info = meddl::vk::defaults::debug_info();
       _instance = std::make_unique<Instance>(app_info, debug_info, _debugger);
@@ -243,5 +251,67 @@ TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
        compiler.compile(std::filesystem::current_path() / "shader.frag", shaderc_fragment_shader);
    REQUIRE(frag_spirv.size() == 143);
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
+}
+
+TEST_CASE_METHOD(MeddlFixture, "Renderloop")
+{
+   init_all();
+   uint32_t imageIndex{};
+   for (auto i = 0; i < 200; i++) {
+      _syncs._fence->wait(_device.get());
+      _syncs._fence->reset(_device.get());
+      vkAcquireNextImageKHR(_device->vk(),
+                            _swapchain->vk(),
+                            std::numeric_limits<uint64_t>::max(),
+                            _syncs._image_available->vk(),
+                            VK_NULL_HANDLE,
+                            &imageIndex);
+
+      _command_buffer->reset();
+      _command_buffer->begin();
+      _command_buffer->begin_renderpass(
+          _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[imageIndex]);
+      _command_buffer->set_viewport(defaults::default_viewport(_swapchain->extent()));
+      _command_buffer->set_scissor(defaults::default_scissor(_swapchain->extent()));
+      _command_buffer->bind_pipeline(_graphics_pipeline.get());
+      _command_buffer->draw();
+      _command_buffer->end_renderpass();
+      _command_buffer->end();
+      VkSubmitInfo submit_info{};
+      submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+      VkSemaphore wait_semaphores[] = {_syncs._image_available->vk()};
+      VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+      submit_info.waitSemaphoreCount = 1;
+      submit_info.pWaitSemaphores = wait_semaphores;
+      submit_info.pWaitDstStageMask = wait_stages;
+
+      VkCommandBuffer command_buffer = _command_buffer->vk();
+      submit_info.commandBufferCount = 1;
+      submit_info.pCommandBuffers = &command_buffer;
+
+      VkSemaphore signal_semaphores[] = {_syncs._renderFinished->vk()};
+      submit_info.signalSemaphoreCount = 1;
+      submit_info.pSignalSemaphores = signal_semaphores;
+
+      if (vkQueueSubmit(_device->_queues.at(0).vk(), 1, &submit_info, _syncs._fence->vk()) !=
+          VK_SUCCESS) {
+         throw std::runtime_error("Failed to submit draw command buffer");
+      }
+      // After vkQueueSubmit
+      VkPresentInfoKHR presentInfo{};
+      presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+      presentInfo.waitSemaphoreCount = 1;
+      presentInfo.pWaitSemaphores = signal_semaphores;
+
+      VkSwapchainKHR swapChains[] = {_swapchain->vk()};
+      presentInfo.swapchainCount = 1;
+      presentInfo.pSwapchains = swapChains;
+      presentInfo.pImageIndices = &imageIndex;
+
+      // Use the presentation queue from your device
+      vkQueuePresentKHR(_device->_queues.at(0).vk(), &presentInfo);
+   }
 }
 // NOLINTEND
