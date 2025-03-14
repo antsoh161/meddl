@@ -46,7 +46,7 @@ class Window {
 
    operator GLFWwindow*() const { return window_handle.get(); }
 
-   void should_close(bool value) { glfwWindowShouldClose(window_handle.get()); }
+   bool should_close() { return glfwWindowShouldClose(window_handle.get()); }
 
    void close() { glfwSetWindowShouldClose(window_handle.get(), true); }
 
