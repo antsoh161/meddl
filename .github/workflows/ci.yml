@@ -7,14 +7,14 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    container: 
+    container:
       image: ghcr.io/antsoh161/ubuntu-vulkan-24.04:latest
       credentials:
         username: antsoh161
         password: ${{ secrets.MEDDL_DOCKER_REGISTRY_TOKEN }}
 
     strategy:
-      fail-fast: true 
+      fail-fast: true
       matrix:
         # os: [ubuntu-latest, windows-latest]
         os: [ubuntu-latest]
@@ -23,7 +23,7 @@ jobs:
         #compilers: [ {c: gcc, cpp: g++}, {c: clang, cpp: clang++}, {c: cl, cpp: cl}]
         compilers:
         - {c: gcc, cpp: g++}
-        - {c: clang-19, cpp: clang++-19} 
+        - {c: clang-19, cpp: clang++-19}
 
     steps:
     - uses: actions/checkout@v4

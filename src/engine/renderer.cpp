@@ -156,7 +156,8 @@ void Renderer::draw()
 
    // Use the presentation queue from your device
    const auto result2 = vkQueuePresentKHR(_device->_queues.at(0).vk(), &presentInfo);
-   if(result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR || _window->is_resized()) { 
+   if (result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR ||
+       _window->is_resized()) {
       _window->reset_resized();
       _swapchain = vk::Swapchain::recreate(_instance->get_physical_devices().front().get(),
                                            _device.get(),
@@ -165,13 +166,12 @@ void Renderer::draw()
                                            vk::SwapchainOptions{},
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
-   } else if (result2 != VK_SUCCESS) {
+   }
+   else if (result2 != VK_SUCCESS) {
       throw std::runtime_error("Failed to present swapchain image");
    }
 
    // need to be after present because sync?
-
-
 
    _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
