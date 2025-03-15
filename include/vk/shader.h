@@ -39,4 +39,16 @@ class ShaderCompiler {
    shaderc::Compiler _compiler{};
    shaderc::CompileOptions _options{};
 };
+
+class ShaderProgram {
+  public:
+   ShaderProgram() = default;
+   void load_vertex(const std::filesystem::path& path);
+   bool load_fragment(const std::filesystem::path& path);
+
+  private:
+   // SPIRV's
+   std::vector<uint32_t> _vertex{};
+   std::vector<uint32_t> _fragment{};
+};
 }  // namespace meddl::vk
