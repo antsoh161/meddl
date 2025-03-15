@@ -1,10 +1,12 @@
 #include "vk/vertex.h"
+
 #include <cstring>
 
 namespace meddl::vk {
 
-const VkVertexInputBindingDescription create_vertex_binding_description(
-    size_t stride, uint32_t binding, VkVertexInputRate inputRate)
+const VkVertexInputBindingDescription create_vertex_binding_description(size_t stride,
+                                                                        uint32_t binding,
+                                                                        VkVertexInputRate inputRate)
 {
    VkVertexInputBindingDescription bindingDescription{};
    bindingDescription.binding = binding;
