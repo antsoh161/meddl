@@ -32,6 +32,7 @@ constexpr std::error_code make_error_code(VulkanError e) noexcept
 {
    return {static_cast<int>(e), VulkanErrorCategory::get()};
 }
+
 struct ErrorInfo {
    std::error_code code;
    std::string details;
@@ -47,6 +48,12 @@ struct ErrorInfo {
 
 template <typename... Args>
 ErrorInfo make_error(std::error_code code, std::format_string<Args...> fmt, Args&&... args)
+{
+   return {code, std::format(fmt, std::forward<Args>(args)...)};
+}
+
+template <typename... Args>
+ErrorInfo make_error(VulkanError code, std::format_string<Args...> fmt, Args&&... args)
 {
    return {code, std::format(fmt, std::forward<Args>(args)...)};
 }
