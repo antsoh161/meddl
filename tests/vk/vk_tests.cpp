@@ -11,6 +11,7 @@
 #include "vk/shader.h"
 #include "vk/surface.h"
 #include "vk/swapchain.h"
+#include "vk/vertex.h"
 
 using namespace meddl::vk;
 using namespace meddl::glfw;
@@ -112,11 +113,16 @@ class MeddlFixture {
       std::println(("frag size: {}, vert size: {}"), _frag_spirv.size(), _vert_spirv.size());
 
       _pipeline_layout = std::make_unique<PipelineLayout>(_device.get(), 0);
+
+      const auto bdesc = meddl::vk::create_vertex_binding_description(0);
+      const auto vattr = meddl::vk::create_vertex_attribute_descriptions(0, 0, 0, 0);
       _graphics_pipeline = std::make_unique<GraphicsPipeline>(_vert_mod.get(),
                                                               _frag_mod.get(),
                                                               _device.get(),
                                                               _pipeline_layout.get(),
-                                                              _renderpass.get());
+                                                              _renderpass.get(),
+                                                              bdesc,
+                                                              vattr);
    };
 
    void init_command()
@@ -292,7 +298,7 @@ TEST_CASE_METHOD(MeddlFixture, "Renderloop")
       submit_info.signalSemaphoreCount = 1;
       submit_info.pSignalSemaphores = signal_semaphores;
 
-      if (vkQueueSubmit(_device->_queues.at(0).vk(), 1, &submit_info, _syncs._fence->vk()) !=
+      if (vkQueueSubmit(_device->queues().at(0).vk(), 1, &submit_info, _syncs._fence->vk()) !=
           VK_SUCCESS) {
          throw std::runtime_error("Failed to submit draw command buffer");
       }
@@ -309,7 +315,7 @@ TEST_CASE_METHOD(MeddlFixture, "Renderloop")
       presentInfo.pImageIndices = &imageIndex;
 
       // Use the presentation queue from your device
-      vkQueuePresentKHR(_device->_queues.at(0).vk(), &presentInfo);
+      vkQueuePresentKHR(_device->queues().at(0).vk(), &presentInfo);
    }
 }
 // NOLINTEND

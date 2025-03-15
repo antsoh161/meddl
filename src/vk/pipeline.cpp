@@ -4,11 +4,14 @@
 
 namespace meddl::vk {
 
-GraphicsPipeline::GraphicsPipeline(ShaderModule* vert_shader,
-                                   ShaderModule* frag_shader,
-                                   Device* device,
-                                   PipelineLayout* layout,
-                                   RenderPass* render_pass)
+GraphicsPipeline::GraphicsPipeline(
+    ShaderModule* vert_shader,
+    ShaderModule* frag_shader,
+    Device* device,
+    PipelineLayout* layout,
+    RenderPass* render_pass,
+    VkVertexInputBindingDescription binding_description,
+    const std::array<VkVertexInputAttributeDescription, 4>& attribute_description)
     : _layout(layout), _device(device)
 {
    VkPipelineShaderStageCreateInfo vert_info{};
@@ -27,8 +30,18 @@ GraphicsPipeline::GraphicsPipeline(ShaderModule* vert_shader,
 
    VkPipelineVertexInputStateCreateInfo vertex_input_info{};
    vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-   vertex_input_info.vertexBindingDescriptionCount = 0;
-   vertex_input_info.vertexAttributeDescriptionCount = 0;
+   bool has_vertex_info = binding_description.stride > 0;
+   if (has_vertex_info) {
+      vertex_input_info.vertexBindingDescriptionCount = 1;
+      vertex_input_info.pVertexBindingDescriptions = &binding_description;
+      vertex_input_info.vertexAttributeDescriptionCount =
+          static_cast<uint32_t>(attribute_description.size());
+      vertex_input_info.pVertexAttributeDescriptions = attribute_description.data();
+   }
+   else {
+      vertex_input_info.vertexBindingDescriptionCount = 0;
+      vertex_input_info.vertexAttributeDescriptionCount = 0;
+   }
 
    VkPipelineInputAssemblyStateCreateInfo input_asm{};
    input_asm.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

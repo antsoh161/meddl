@@ -69,13 +69,15 @@ class Device {
    operator VkDevice() const { return _device; }
    [[nodiscard]] VkDevice vk() const { return _device; }
 
+   const std::vector<Queue>& queues() { return _queues; }
+   PhysicalDevice* physical_device() { return _physical_device; }
+
    void wait_idle();
    // TODO: Allocator
    VkAllocationCallbacks* get_allocators() { return nullptr; }
 
-   std::vector<Queue> _queues{};
-
   private:
+   std::vector<Queue> _queues{};
    VkDevice _device{};
    Instance* _instance;
    PhysicalDevice* _physical_device;

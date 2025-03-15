@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
 #include "GLFW/glfw3.h"
 #include "vk/device.h"
 #include "vk/renderpass.h"
@@ -32,7 +34,9 @@ class GraphicsPipeline {
                     ShaderModule* frag_shader,
                     Device* device,
                     PipelineLayout* layout,
-                    RenderPass* render_pass);
+                    RenderPass* render_pass,
+                    VkVertexInputBindingDescription binding_description,
+                    const std::array<VkVertexInputAttributeDescription, 4>& attribute_description);
    ~GraphicsPipeline();
 
    GraphicsPipeline(const GraphicsPipeline&) = delete;

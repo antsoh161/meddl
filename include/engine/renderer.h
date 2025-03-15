@@ -3,6 +3,8 @@
 #include <memory>
 #include <optional>
 
+#include "engine/vertex.h"
+#include "vk/vertex.h"
 #include "vk/vk.h"
 
 namespace meddl {
@@ -17,6 +19,8 @@ class Renderer {
    Renderer(Renderer&&) = default;
    Renderer& operator=(Renderer&&) = default;
 
+   void set_vertices(const std::vector<engine::Vertex>& vertices);
+   void draw_vertices(uint32_t vertex_count = 0);
    void draw();
 
    std::shared_ptr<glfw::Window> window() { return _window; };
@@ -36,6 +40,7 @@ class Renderer {
    std::unique_ptr<vk::GraphicsPipeline> _graphics_pipeline{};
    std::unique_ptr<vk::CommandPool> _command_pool{};
    std::vector<vk::CommandBuffer> _command_buffers{};
+   std::unique_ptr<vk::VertexBuffer> _vertex_buffer{};
 
    // Shaders
    std::unique_ptr<vk::ShaderModule> _frag_mod{};
@@ -49,5 +54,6 @@ class Renderer {
    std::vector<vk::Fence> _fences{};
 
    size_t _current_frame{0};
+   uint32_t _vertex_count{0};
 };
 }  // namespace meddl

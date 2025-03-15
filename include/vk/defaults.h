@@ -43,13 +43,13 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
     VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 //! Device Creation
-[[maybe_unused]] static const std::unordered_set<std::string> device_extensions()
+[[maybe_unused]] static constexpr std::unordered_set<std::string> device_extensions()
 {
    return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 }
 
 //! Instance Creation
-[[maybe_unused]] static constexpr VkApplicationInfo app_info()
+[[maybe_unused]] static consteval VkApplicationInfo app_info()
 {
    return {VK_STRUCTURE_TYPE_APPLICATION_INFO,
            nullptr,
@@ -121,5 +121,7 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
        .extent = extent,
    };
 }
+
+// Vertex
 
 }  // namespace meddl::vk::defaults
