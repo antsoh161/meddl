@@ -96,16 +96,15 @@ GraphicsPipeline::GraphicsPipeline(ShaderModule* vert_shader,
 
    auto res = vkCreateGraphicsPipelines(
        *_device, VK_NULL_HANDLE, 1, &pipeline_info, _device->get_allocators(), &_pipeline);
-   if(res != VK_SUCCESS)
-   {
-      throw std::runtime_error{std::format("Failed to create graphics pipeline, error: {}", static_cast<int32_t>(res))};
+   if (res != VK_SUCCESS) {
+      throw std::runtime_error{
+          std::format("Failed to create graphics pipeline, error: {}", static_cast<int32_t>(res))};
    }
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-   if(_pipeline)
-   {
+   if (_pipeline) {
       vkDestroyPipeline(*_device, _pipeline, _device->get_allocators());
    }
 }

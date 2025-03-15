@@ -3,8 +3,8 @@
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
-#include "vk/device.h"
 #include "engine/window.h"
+#include "vk/device.h"
 #include "vk/hash.hpp"
 #include "vk/renderpass.h"
 
@@ -27,18 +27,15 @@ struct SwapchainDetails {
    std::unordered_set<VkPresentModeKHR> _present_modes{};
 };
 
-//! Swapchain representation
-
-//! New
 class Swapchain {
   public:
    Swapchain() = delete;
    Swapchain(PhysicalDevice* physical_device,
-                Device* device,
-                Surface* surface,
-                const RenderPass* renderpass,
-                const SwapchainOptions& options,
-                const glfw::FrameBufferSize& fbs);
+             Device* device,
+             Surface* surface,
+             const RenderPass* renderpass,
+             const SwapchainOptions& options,
+             const glfw::FrameBufferSize& fbs);
    ~Swapchain();
 
    Swapchain(const Swapchain&) = delete;
@@ -51,7 +48,18 @@ class Swapchain {
    [[nodiscard]] VkExtent2D extent() const { return _extent2d; }
    [[nodiscard]] VkSwapchainKHR vk() const { return _swapchain; }
 
-   [[nodiscard]] const std::vector<VkFramebuffer>& get_framebuffers() const { return _framebuffers; }
+   [[nodiscard]] const std::vector<VkFramebuffer>& get_framebuffers() const
+   {
+      return _framebuffers;
+   }
+
+   static std::unique_ptr<Swapchain> recreate(PhysicalDevice* physical_device,
+                                              Device* device,
+                                              Surface* surface,
+                                              const RenderPass* renderpass,
+                                              const SwapchainOptions& options,
+                                              const glfw::FrameBufferSize& fbs,
+                                              std::unique_ptr<Swapchain> old_swapchain);
 
   private:
    VkSwapchainKHR _swapchain{VK_NULL_HANDLE};

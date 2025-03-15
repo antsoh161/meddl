@@ -1,8 +1,8 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
-#include "vk/instance.h"
 #include "engine/window.h"
+#include "vk/instance.h"
 
 namespace meddl::vk {
 class Surface {

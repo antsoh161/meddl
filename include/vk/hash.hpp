@@ -63,7 +63,6 @@ struct hash<VkSurfaceFormatKHR> {
    }
 };
 
-
 template <>
 struct hash<VkExtent2D> {
    std::size_t operator()(const VkExtent2D& extent_2d) const noexcept

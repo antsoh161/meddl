@@ -114,10 +114,11 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
    };
 }
 
-[[maybe_unused]] static constexpr VkRect2D default_scissor(const VkExtent2D& extent) {
+[[maybe_unused]] static constexpr VkRect2D default_scissor(const VkExtent2D& extent)
+{
    return {
-      .offset = {0, 0},
-      .extent = extent,
+       .offset = {0, 0},
+       .extent = extent,
    };
 }
 

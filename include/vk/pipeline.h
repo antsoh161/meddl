@@ -8,7 +8,7 @@
 namespace meddl::vk {
 
 class PipelineLayout {
-public:
+  public:
    PipelineLayout(Device* device, VkPipelineLayoutCreateFlags flags);
    ~PipelineLayout();
 
@@ -21,7 +21,7 @@ public:
    operator VkPipelineLayout() const { return _layout; }
    [[nodiscard]] VkPipelineLayout vk() const { return _layout; }
 
-private:
+  private:
    Device* _device;
    VkPipelineLayout _layout{VK_NULL_HANDLE};
 };
@@ -42,6 +42,7 @@ class GraphicsPipeline {
    GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
 
    [[nodiscard]] VkPipeline vk() const { return _pipeline; }
+
   private:
    PipelineLayout* _layout;
    Device* _device;

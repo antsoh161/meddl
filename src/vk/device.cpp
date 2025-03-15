@@ -131,4 +131,11 @@ Device::~Device()
       vkDestroyDevice(_device, nullptr);
    }
 }
+
+void Device::wait_idle()
+{
+   if (vkDeviceWaitIdle(_device) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to wait for device idle");
+   }
+}
 }  // namespace meddl::vk

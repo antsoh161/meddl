@@ -25,8 +25,7 @@ class Instance {
    [[nodiscard]] operator VkInstance() const { return _instance; }
    [[nodiscard]] VkInstance vk() const { return _instance; }
 
-   [[nodiscard]] const std::vector<std::shared_ptr<PhysicalDevice>>& get_physical_devices()
-       const;
+   [[nodiscard]] const std::vector<std::shared_ptr<PhysicalDevice>>& get_physical_devices() const;
 
   private:
    VkInstance _instance{VK_NULL_HANDLE};
