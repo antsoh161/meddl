@@ -31,7 +31,7 @@ file(GLOB_RECURSE hdrs CONFIGURE_DEPENDS include/*.h include/*.hpp)
 
 add_library(Meddl)
 target_sources(Meddl PUBLIC
-      ${srcs} 
+      ${srcs}
    PUBLIC
       FILE_SET HEADERS
       BASE_DIRS ${PROJECT_SOURCE_DIR}/include
@@ -43,7 +43,7 @@ target_sources(Meddl PUBLIC
    #    FILES
    #       ${modules}
 )
-      
+
 target_link_libraries(Meddl PUBLIC glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
 target_compile_options(
