@@ -1,19 +1,28 @@
 #include "vk/shader.h"
 
+#include <expected>
 #include <fstream>
+
+#include "core/error.h"
 namespace meddl::vk {
 
 namespace {
-std::optional<std::string> read_file(const std::filesystem::path& path)
+std::expected<std::string, meddl::error::ErrorInfo> read_file(const std::filesystem::path& path)
 {
-   std::println("Reading from path: {}", path.string());
-   std::ifstream file(path);
-   if (file.is_open()) {
-      std::println("Reading file...");
-      return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+   try {
+      std::ifstream file(path, std::ios::binary);
+      if (!file) {
+         return std::unexpected(meddl::error::make_error(
+             std::make_error_code(std::errc::io_error), "Failed to open file: {}", path.string()));
+      }
+      return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
    }
-   return std::nullopt;
+   catch (const std::exception& e) {
+      return std::unexpected(meddl::error::make_error(
+          std::make_error_code(std::errc::io_error), "Error reading file: {}", e.what()));
+   }
 }
+
 }  // namespace
 
 ShaderModule::ShaderModule(Device* device, const std::vector<uint32_t>& code) : _device(device)
@@ -47,27 +56,30 @@ std::vector<uint32_t> ShaderCompiler::compile(const std::filesystem::path& path,
    }
 
    auto source = read_file(path);
-   if (source.has_value()) {
-      auto result = _compiler.CompileGlslToSpv(
-          source.value().c_str(), source.value().size(), kind, path.c_str(), _options);
-
-      if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-         throw std::runtime_error{
-             std::format("Shader compilation failed: {}", result.GetErrorMessage())};
-      }
-      std::vector<uint32_t> result_binary{};
-      result_binary.reserve(std::distance(result.begin(), result.end()) * sizeof(uint32_t));
-
-      std::transform(
-          result.begin(), result.end(), std::back_inserter(result_binary), [](uint32_t bytes) {
-             return bytes;
-          });
-
-      return result_binary;
+   if (!source.has_value()) {
+      std::println("{}", source.error().message());
+      return {};
    }
-   // TODO: logger warn
-   std::println("Compiled empty shader");
-   return {};
+   auto result = _compiler.CompileGlslToSpv(
+       source.value().c_str(), source.value().size(), kind, path.c_str(), _options);
+
+   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+      throw std::runtime_error{
+          std::format("Shader compilation failed: {}", result.GetErrorMessage())};
+   }
+   std::vector<uint32_t> result_binary{};
+   result_binary.reserve(std::distance(result.begin(), result.end()) * sizeof(uint32_t));
+
+   std::ranges::copy(result, std::back_inserter(result_binary));
+   std::println("Compiled shader size: {}", result_binary.size());
+
+   return result_binary;
+}
+
+void ShaderProgram::load_vertex(const std::filesystem::path& path)
+{
+   ShaderCompiler compiler;
+   _vertex = compiler.compile(path, shaderc_vertex_shader);
 }
 
 }  // namespace meddl::vk

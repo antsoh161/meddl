@@ -130,7 +130,7 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::begin_renderpass(
    if (_state != State::Recording) {
       return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
    }
-   VkClearValue clear_values = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+   VkClearValue clear_values = {{{0.2f, 0.2f, 0.2f, 1.0f}}};
 
    VkRenderPassBeginInfo begin_info{};
    begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

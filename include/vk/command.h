@@ -2,9 +2,9 @@
 
 #include <expected>
 
+#include "core/error.h"
 #include "vk/defaults.h"
 #include "vk/device.h"
-#include "core/error.h"
 #include "vk/pipeline.h"
 #include "vk/renderpass.h"
 #include "vk/swapchain.h"
@@ -67,8 +67,8 @@ class CommandBuffer {
 
    //! Renderpass
    std::expected<void, meddl::error::VulkanError> begin_renderpass(const RenderPass* renderpass,
-                                                                 const Swapchain* swapchain,
-                                                                 VkFramebuffer framebuffer);
+                                                                   const Swapchain* swapchain,
+                                                                   VkFramebuffer framebuffer);
 
    std::expected<void, meddl::error::VulkanError> bind_pipeline(const GraphicsPipeline* pipeline);
 

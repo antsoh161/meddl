@@ -49,7 +49,6 @@ class Window {
    Window(Window&& other) noexcept = default;
    Window& operator=(Window&& other) noexcept = default;
 
-   // operator GLFWwindow*() const { return window_handle.get(); }
    [[nodiscard]] GLFWwindow* glfw() const { return _window_handle.get(); }
 
    bool should_close() { return glfwWindowShouldClose(_window_handle.get()); }
