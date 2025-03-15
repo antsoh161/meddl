@@ -190,6 +190,22 @@ Swapchain::~Swapchain()
    }
 }
 
+std::unique_ptr<Swapchain> Swapchain::recreate(PhysicalDevice* physical_device,
+                                               Device* device,
+                                               Surface* surface,
+                                               const RenderPass* renderpass,
+                                               const SwapchainOptions& options,
+                                               const glfw::FrameBufferSize& fbs,
+                                               std::unique_ptr<Swapchain> old_swapchain)
+{
+   std::println("Recreating swapchain");
+   device->wait_idle();
+   if (old_swapchain) {
+      old_swapchain.reset();
+   }
+   return std::make_unique<Swapchain>(physical_device, device, surface, renderpass, options, fbs);
+}
+
 std::vector<VkImageView>& Swapchain::get_image_views()
 {
    return _image_views;

@@ -6,9 +6,10 @@ namespace meddl::vk {
 
 Surface::Surface(glfw::Window* window, Instance* instance) : _instance(instance)
 {
-   auto res = glfwCreateWindowSurface(*_instance, *window, nullptr, &_surface);
+   auto res = glfwCreateWindowSurface(*_instance, window->glfw(), nullptr, &_surface);
    if (res != VK_SUCCESS) {
-      throw std::runtime_error{std::format("Failed to create surface, error: {}", static_cast<int32_t>(res))};
+      throw std::runtime_error{
+          std::format("Failed to create surface, error: {}", static_cast<int32_t>(res))};
    }
 }
 

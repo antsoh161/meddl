@@ -44,7 +44,7 @@ target_sources(Meddl PUBLIC
    #       ${modules}
 )
       
-target_link_libraries(Meddl PUBLIC glfw Vulkan::Vulkan PkgConfig::Shaderc pthread)
+target_link_libraries(Meddl PUBLIC glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
 target_compile_options(
   Meddl

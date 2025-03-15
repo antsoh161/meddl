@@ -11,7 +11,7 @@ Renderer::Renderer()
 {
    glfwInit();
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
    auto app_info = meddl::vk::defaults::app_info();
    auto debug_info = meddl::vk::defaults::debug_info();
    _debugger = std::make_optional<Debugger>();
@@ -19,6 +19,7 @@ Renderer::Renderer()
    _instance = std::make_unique<vk::Instance>(app_info, debug_info, _debugger);
    _window = std::make_shared<glfw::Window>(
        vk::defaults::DEFAULT_WINDOW_HEIGHT, vk::defaults::DEFAULT_WINDOW_WIDTH, "Test Window");
+
    _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
 
    std::optional<int> present_index{};
@@ -79,15 +80,29 @@ Renderer::Renderer()
 
 void Renderer::draw()
 {
-   uint32_t imageIndex{};
    _fences.at(_current_frame).wait(_device.get());
+   uint32_t imageIndex{};
+   const auto result = vkAcquireNextImageKHR(_device->vk(),
+                                             _swapchain->vk(),
+                                             std::numeric_limits<uint64_t>::max(),
+                                             _image_available.at(_current_frame).vk(),
+                                             VK_NULL_HANDLE,
+                                             &imageIndex);
+
+   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+      _swapchain = vk::Swapchain::recreate(_instance->get_physical_devices().front().get(),
+                                           _device.get(),
+                                           _surface.get(),
+                                           _renderpass.get(),
+                                           vk::SwapchainOptions{},
+                                           _window->get_framebuffer_size(),
+                                           std::move(_swapchain));
+      return;
+   }
+   else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+      throw std::runtime_error("Failed to acquire next image");
+   }
    _fences.at(_current_frame).reset(_device.get());
-   vkAcquireNextImageKHR(_device->vk(),
-                         _swapchain->vk(),
-                         std::numeric_limits<uint64_t>::max(),
-                         _image_available.at(_current_frame).vk(),
-                         VK_NULL_HANDLE,
-                         &imageIndex);
 
    _command_buffers.at(_current_frame).reset();
    _command_buffers.at(_current_frame).begin();
@@ -140,6 +155,24 @@ void Renderer::draw()
    presentInfo.pImageIndices = &imageIndex;
 
    // Use the presentation queue from your device
-   vkQueuePresentKHR(_device->_queues.at(0).vk(), &presentInfo);
+   const auto result2 = vkQueuePresentKHR(_device->_queues.at(0).vk(), &presentInfo);
+   if(result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR || _window->is_resized()) { 
+      _window->reset_resized();
+      _swapchain = vk::Swapchain::recreate(_instance->get_physical_devices().front().get(),
+                                           _device.get(),
+                                           _surface.get(),
+                                           _renderpass.get(),
+                                           vk::SwapchainOptions{},
+                                           _window->get_framebuffer_size(),
+                                           std::move(_swapchain));
+   } else if (result2 != VK_SUCCESS) {
+      throw std::runtime_error("Failed to present swapchain image");
+   }
+
+   // need to be after present because sync?
+
+
+
+   _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 }  // namespace meddl

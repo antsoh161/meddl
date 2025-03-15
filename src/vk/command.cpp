@@ -24,32 +24,35 @@ CommandPool::CommandPool(Device* device,
 }
 
 CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
-    : _device(other._device), _pool(other._pool), _command_buffer(other._command_buffer), _state(other._state)
+    : _device(other._device),
+      _pool(other._pool),
+      _command_buffer(other._command_buffer),
+      _state(other._state)
 {
-    other._command_buffer = VK_NULL_HANDLE;
-    other._device = nullptr;
-    other._pool = nullptr;
-    other._state = State::Ready;
+   other._command_buffer = VK_NULL_HANDLE;
+   other._device = nullptr;
+   other._pool = nullptr;
+   other._state = State::Ready;
 }
 
 CommandBuffer& CommandBuffer::operator=(CommandBuffer&& other) noexcept
 {
-    if (this != &other) {
-        if (_command_buffer != VK_NULL_HANDLE) {
-            vkFreeCommandBuffers(_device->vk(), _pool->vk(), 1, &_command_buffer);
-        }
-        
-        _device = other._device;
-        _pool = other._pool;
-        _command_buffer = other._command_buffer;
-        _state = other._state;
-        
-        other._command_buffer = VK_NULL_HANDLE;
-        other._device = nullptr;
-        other._pool = nullptr;
-        other._state = State::Ready;
-    }
-    return *this;
+   if (this != &other) {
+      if (_command_buffer != VK_NULL_HANDLE) {
+         vkFreeCommandBuffers(_device->vk(), _pool->vk(), 1, &_command_buffer);
+      }
+
+      _device = other._device;
+      _pool = other._pool;
+      _command_buffer = other._command_buffer;
+      _state = other._state;
+
+      other._command_buffer = VK_NULL_HANDLE;
+      other._device = nullptr;
+      other._pool = nullptr;
+      other._state = State::Ready;
+   }
+   return *this;
 }
 
 CommandPool::~CommandPool()

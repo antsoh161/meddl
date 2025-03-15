@@ -37,9 +37,7 @@ void AsyncLogger::log_worker()
 {
    while (_enabled) {
       std::unique_lock<std::mutex> lock(_mutex);
-      m_cv.wait(lock, [this]() {
-         return !_shared_queue.empty() || !_enabled;
-      });
+      m_cv.wait(lock, [this]() { return !_shared_queue.empty() || !_enabled; });
 
       while (!_shared_queue.empty()) {
          auto msg = _shared_queue.front();

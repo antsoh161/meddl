@@ -25,18 +25,18 @@ class Fence {
 };
 
 class Semaphore {
-public:
+  public:
    Semaphore() = delete;
    Semaphore(Device* device);
    ~Semaphore();
-    Semaphore(const Semaphore&) = delete;
-    Semaphore& operator=(const Semaphore&) = delete;
-    Semaphore(Semaphore&&) noexcept;
-    Semaphore& operator=(Semaphore&&) noexcept;
+   Semaphore(const Semaphore&) = delete;
+   Semaphore& operator=(const Semaphore&) = delete;
+   Semaphore(Semaphore&&) noexcept;
+   Semaphore& operator=(Semaphore&&) noexcept;
 
-   [[nodiscard]] VkSemaphore vk() const {return _semaphore;}
+   [[nodiscard]] VkSemaphore vk() const { return _semaphore; }
 
-private:
+  private:
    Device* _device{VK_NULL_HANDLE};
    VkSemaphore _semaphore{VK_NULL_HANDLE};
 };
