@@ -14,6 +14,7 @@
 
 using namespace meddl::vk;
 using namespace meddl::glfw;
+using namespace meddl::error;
 
 // NOLINTBEGIN (cppcoreguidelines-avoid-do-while)
 namespace {
@@ -21,11 +22,8 @@ struct Syncs {
    void init(Device* device)
    {
       _fence = std::make_unique<Fence>(device);
-      std::println("Fence init");
       _image_available = std::make_unique<Semaphore>(device);
-      std::println("ImageAvailable init");
       _renderFinished = std::make_unique<Semaphore>(device);
-      std::println("RenderFinished init");
    }
    std::unique_ptr<Fence> _fence{};
    std::unique_ptr<Semaphore> _image_available{};
@@ -195,17 +193,17 @@ TEST_CASE_METHOD(MeddlFixture, "CommandBufferBadOrder")
    auto result = _command_buffer->begin();
    REQUIRE(result.has_value());
    result = _command_buffer->begin();
-   REQUIRE(result.error() == CommandError::NotReady);
+   REQUIRE(result.error() == VulkanError::CommandBufferNotReady);
 
    result = _command_buffer->end();
    REQUIRE(result.has_value());
    result = _command_buffer->end();
-   REQUIRE(result.error() == CommandError::NotRecording);
+   REQUIRE(result.error() == VulkanError::CommandBufferNotRecording);
 
    result = _command_buffer->reset();
    REQUIRE(result.has_value());
    result = _command_buffer->reset();
-   REQUIRE(result.error() == CommandError::NotExecutable);
+   REQUIRE(result.error() == VulkanError::CommandBufferNotExecutable);
 }
 
 TEST_CASE_METHOD(MeddlFixture, "Renderpass")

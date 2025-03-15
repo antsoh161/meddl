@@ -5,7 +5,6 @@
 #include "vk/debug.h"
 #include "vk/defaults.h"
 #include "vk/device.h"
-#include "vk/error.h"
 #include "vk/instance.h"
 #include "vk/pipeline.h"
 #include "vk/queue.h"
