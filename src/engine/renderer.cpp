@@ -6,6 +6,7 @@
 #include <array>
 #include <cstring>
 
+#include "core/log.h"
 #include "engine/vertex.h"
 #include "vk/vertex.h"
 
@@ -32,7 +33,6 @@ Renderer::Renderer()
    for (const auto& device : _instance->get_physical_devices()) {
       present_index = device->get_present_family(_surface.get());
       graphics_index = device->get_queue_family(VK_QUEUE_GRAPHICS_BIT);
-      std::println("Present: {}, Graphics: {}", present_index.value(), graphics_index.value());
    }
 
    auto physical_device = _instance->get_physical_devices().front();
@@ -64,17 +64,13 @@ Renderer::Renderer()
 
    _frag_mod = std::make_unique<vk::ShaderModule>(_device.get(), _frag_spirv);
    _vert_mod = std::make_unique<vk::ShaderModule>(_device.get(), _vert_spirv);
-   std::println(("frag size: {}, vert size: {}"), _frag_spirv.size(), _vert_spirv.size());
 
    const auto bdesc = meddl::vk::create_vertex_binding_description(engine::vertex_layout::stride);
-   std::println("Vertex binding stride: {}", bdesc.stride);
    const auto vattr =
        meddl::vk::create_vertex_attribute_descriptions(engine::vertex_layout::position_offset,
                                                        engine::vertex_layout::color_offset,
                                                        engine::vertex_layout::normal_offset,
                                                        engine::vertex_layout::texcoord_offset);
-   std::println("Position attribute offset: {}", vattr[0].offset);
-   std::println("Color attribute offset: {}", vattr[1].offset);
 
    _pipeline_layout = std::make_unique<vk::PipelineLayout>(_device.get(), 0);
    _graphics_pipeline = std::make_unique<vk::GraphicsPipeline>(_vert_mod.get(),
@@ -96,9 +92,9 @@ Renderer::Renderer()
       _fences.emplace_back(_device.get());
    }
 }
-
 void Renderer::draw()
 {
+   meddl::log::info("Drawing frame: {}", _current_frame);
    _fences.at(_current_frame).wait(_device.get());
    uint32_t image_index{};
    const auto result = vkAcquireNextImageKHR(_device->vk(),
@@ -204,29 +200,24 @@ void Renderer::set_indices(const std::vector<uint32_t>& indices)
 {
    const VkDeviceSize buffer_size = indices.size() * sizeof(uint32_t);
 
-   // Wait for all previous operations to complete
    vkDeviceWaitIdle(_device->vk());
 
-   // Create staging buffer
    auto staging_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-   // Copy index data to staging buffer
    staging_buffer->map();
    std::memcpy(staging_buffer->mapped_data(), indices.data(), buffer_size);
    staging_buffer->unmap();
 
-   // Create index buffer
    _index_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-   // Copy from staging buffer to index buffer
    _index_buffer->copy_from(staging_buffer.get(), buffer_size);
    _index_count = static_cast<uint32_t>(indices.size());
 }
@@ -234,29 +225,24 @@ void Renderer::set_vertices(const std::vector<engine::Vertex>& vertices)
 {
    const VkDeviceSize buffer_size = vertices.size() * sizeof(engine::Vertex);
 
-   // Wait for all previous operations to complete before modifying buffers
    vkDeviceWaitIdle(_device->vk());
 
-   // Create staging buffer with vertex data
    auto staging_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-   // Copy vertex data to staging buffer
    staging_buffer->map();
    std::memcpy(staging_buffer->mapped_data(), vertices.data(), buffer_size);
    staging_buffer->unmap();
 
-   // Create vertex buffer
    _vertex_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-   // Copy from staging buffer to vertex buffer
    _vertex_buffer->copy_from(staging_buffer.get(), buffer_size);
    _vertex_count = static_cast<uint32_t>(vertices.size());
 }
