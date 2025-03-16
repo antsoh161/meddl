@@ -12,7 +12,7 @@ struct Ball {
    float radius{0.15f};
    glm::vec3 color{1.0f, 0.3f, 0.2f};
 
-   std::vector<meddl::engine::Vertex> generate_vertices() const
+   [[nodiscard]] std::vector<meddl::engine::Vertex> generate_vertices() const
    {
       const int segments = 20;
       std::vector<meddl::engine::Vertex> vertices;
@@ -46,13 +46,25 @@ struct Ball {
 
       return vertices;
    }
+   [[nodiscard]] std::vector<uint32_t> generate_indices() const
+   {
+      const int segments = 20;
+      std::vector<uint32_t> indices;
+      indices.reserve(segments * 3);
+      for (int i = 0; i < segments; i++) {
+         uint32_t base_idx = i * 3;
+         indices.push_back(base_idx);
+         indices.push_back(base_idx + 1);
+         indices.push_back(base_idx + 2);
+      }
+      return indices;
+   }
 
-   // Update ball position based on velocity
    void update()
    {
       position += velocity;
 
-      // Bounce off the edges
+      // bounce off the edges
       if (position.x + radius > 1.0f || position.x - radius < -1.0f) {
          velocity.x = -velocity.x;
       }
@@ -73,7 +85,9 @@ auto main() -> int
       glfwPollEvents();
       ball.update();
       auto vertices = ball.generate_vertices();
+      auto indicies = ball.generate_indices();
       renderer.set_vertices(vertices);
+      renderer.set_indices(indicies);
       renderer.draw();
       std::this_thread::sleep_for(std::chrono::milliseconds(framerate));
    }

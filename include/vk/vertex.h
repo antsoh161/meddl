@@ -18,21 +18,21 @@ const std::array<VkVertexInputAttributeDescription, 4> create_vertex_attribute_d
     uint32_t binding = 0);
 
 class Device;
-class VertexBuffer {
+class Buffer {
   public:
-   VertexBuffer(Device* device,
+   Buffer(Device* device,
                 VkDeviceSize size,
                 VkBufferUsageFlags usage,
                 VkMemoryPropertyFlags properties);
-   ~VertexBuffer();
+   ~Buffer();
 
-   VertexBuffer(const VertexBuffer&) = delete;
-   VertexBuffer& operator=(const VertexBuffer&) = delete;
+   Buffer(const Buffer&) = delete;
+   Buffer& operator=(const Buffer&) = delete;
 
-   VertexBuffer(VertexBuffer&& other) noexcept;
-   VertexBuffer& operator=(VertexBuffer&& other) noexcept;
+   Buffer(Buffer&& other) noexcept;
+   Buffer& operator=(Buffer&& other) noexcept;
 
-   void copy_from(VertexBuffer* src, VkDeviceSize size);
+   void copy_from(Buffer* src, VkDeviceSize size);
 
    void map();
    void unmap();

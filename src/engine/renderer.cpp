@@ -200,12 +200,45 @@ void Renderer::draw()
    _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+void Renderer::set_indices(const std::vector<uint32_t>& indices)
+{
+   const VkDeviceSize buffer_size = indices.size() * sizeof(uint32_t);
+
+   // Wait for all previous operations to complete
+   vkDeviceWaitIdle(_device->vk());
+
+   // Create staging buffer
+   auto staging_buffer = std::make_unique<vk::Buffer>(
+       _device.get(),
+       buffer_size,
+       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+   // Copy index data to staging buffer
+   staging_buffer->map();
+   std::memcpy(staging_buffer->mapped_data(), indices.data(), buffer_size);
+   staging_buffer->unmap();
+
+   // Create index buffer
+   _index_buffer = std::make_unique<vk::Buffer>(
+       _device.get(),
+       buffer_size,
+       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+   // Copy from staging buffer to index buffer
+   _index_buffer->copy_from(staging_buffer.get(), buffer_size);
+   _index_count = static_cast<uint32_t>(indices.size());
+}
 void Renderer::set_vertices(const std::vector<engine::Vertex>& vertices)
 {
    const VkDeviceSize buffer_size = vertices.size() * sizeof(engine::Vertex);
 
+   // Wait for all previous operations to complete before modifying buffers
+   vkDeviceWaitIdle(_device->vk());
+
    // Create staging buffer with vertex data
-   auto staging_buffer = std::make_unique<vk::VertexBuffer>(
+   auto staging_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -217,7 +250,7 @@ void Renderer::set_vertices(const std::vector<engine::Vertex>& vertices)
    staging_buffer->unmap();
 
    // Create vertex buffer
-   _vertex_buffer = std::make_unique<vk::VertexBuffer>(
+   _vertex_buffer = std::make_unique<vk::Buffer>(
        _device.get(),
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -235,11 +268,20 @@ void Renderer::draw_vertices(uint32_t vertex_count)
    }
 
    if (vertex_count > 0 && _vertex_buffer) {
-      VkBuffer vertexBuffers[] = {_vertex_buffer->vk()};
-      VkDeviceSize offsets[] = {0};
+      std::array<VkBuffer, 1> vertexBuffers = {_vertex_buffer->vk()};
+      std::array<VkDeviceSize, 1> offsets = {0};
       vkCmdBindVertexBuffers(
-          _command_buffers.at(_current_frame).vk(), 0, 1, vertexBuffers, offsets);
-      vkCmdDraw(_command_buffers.at(_current_frame).vk(), vertex_count, 1, 0, 0);
+          _command_buffers.at(_current_frame).vk(), 0, 1, vertexBuffers.data(), offsets.data());
+      if (_index_buffer && _index_count > 0) {
+         vkCmdBindIndexBuffer(_command_buffers.at(_current_frame).vk(),
+                              _index_buffer->vk(),
+                              0,
+                              VK_INDEX_TYPE_UINT32);
+         vkCmdDrawIndexed(_command_buffers.at(_current_frame).vk(), _index_count, 1, 0, 0, 0);
+      }
+      else {
+         vkCmdDraw(_command_buffers.at(_current_frame).vk(), vertex_count, 1, 0, 0);
+      }
    }
 }
 }  // namespace meddl
