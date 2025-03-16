@@ -51,7 +51,7 @@ const std::array<VkVertexInputAttributeDescription, 4> create_vertex_attribute_d
    return attributeDescriptions;
 }
 
-VertexBuffer::VertexBuffer(Device* device,
+Buffer::Buffer(Device* device,
                            VkDeviceSize size,
                            VkBufferUsageFlags usage,
                            VkMemoryPropertyFlags properties)
@@ -75,6 +75,20 @@ VertexBuffer::VertexBuffer(Device* device,
    alloc_info.allocationSize = mem_req.size;
    alloc_info.memoryTypeIndex = find_memory_type(mem_req.memoryTypeBits, properties);
 
+   // TODO:
+   // It should be noted that in a real world application, you're not supposed to actually call
+   // vkAllocateMemory for every individual buffer. The maximum number of simultaneous memory
+   // allocations is limited by the maxMemoryAllocationCount physical device limit, which may be as
+   // low as 4096 even on high end hardware like an NVIDIA GTX 1080. The right way to allocate
+   // memory for a large number of objects at the same time is to create a custom allocator that
+   // splits up a single allocation among many different objects by using the offset parameters that
+   // we've seen in many functions.
+
+   // You can either implement such an allocator yourself, or use the VulkanMemoryAllocator library
+   // provided by the GPUOpen initiative. However, for this tutorial it's okay to use a separate
+   // allocation for every resource, because we won't come close to hitting any of these limits for
+   // now.
+
    if (vkAllocateMemory(_device->vk(), &alloc_info, nullptr, &_memory) != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate buffer memory");
    }
@@ -82,7 +96,7 @@ VertexBuffer::VertexBuffer(Device* device,
    vkBindBufferMemory(_device->vk(), _buffer, _memory, 0);
 }
 
-VertexBuffer::~VertexBuffer()
+Buffer::~Buffer()
 {
    if (_mapped_data) {
       unmap();
@@ -99,7 +113,7 @@ VertexBuffer::~VertexBuffer()
    }
 }
 
-VertexBuffer::VertexBuffer(VertexBuffer&& other) noexcept
+Buffer::Buffer(Buffer&& other) noexcept
     : _device(other._device),
       _buffer(other._buffer),
       _memory(other._memory),
@@ -112,7 +126,7 @@ VertexBuffer::VertexBuffer(VertexBuffer&& other) noexcept
    other._mapped_data = nullptr;
 }
 
-VertexBuffer& VertexBuffer::operator=(VertexBuffer&& other) noexcept
+Buffer& Buffer::operator=(Buffer&& other) noexcept
 {
    if (this != &other) {
       if (_buffer) vkDestroyBuffer(_device->vk(), _buffer, nullptr);
@@ -132,7 +146,7 @@ VertexBuffer& VertexBuffer::operator=(VertexBuffer&& other) noexcept
    return *this;
 }
 
-void VertexBuffer::copy_from(VertexBuffer* src, VkDeviceSize size)
+void Buffer::copy_from(Buffer* src, VkDeviceSize size)
 {
    // Create a temporary command buffer
    VkCommandPool commandPool{};
@@ -178,14 +192,14 @@ void VertexBuffer::copy_from(VertexBuffer* src, VkDeviceSize size)
    vkDestroyCommandPool(_device->vk(), commandPool, nullptr);
 }
 
-void VertexBuffer::map()
+void Buffer::map()
 {
    if (!_mapped_data) {
       vkMapMemory(_device->vk(), _memory, 0, _size, 0, &_mapped_data);
    }
 }
 
-void VertexBuffer::unmap()
+void Buffer::unmap()
 {
    if (_mapped_data) {
       vkUnmapMemory(_device->vk(), _memory);
@@ -193,7 +207,7 @@ void VertexBuffer::unmap()
    }
 }
 
-void VertexBuffer::update(const void* data, VkDeviceSize size, VkDeviceSize offset)
+void Buffer::update(const void* data, VkDeviceSize size, VkDeviceSize offset)
 {
    bool was_mapped = _mapped_data != nullptr;
    if (!was_mapped) {
@@ -207,7 +221,7 @@ void VertexBuffer::update(const void* data, VkDeviceSize size, VkDeviceSize offs
    }
 }
 
-uint32_t VertexBuffer::find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t Buffer::find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
    VkPhysicalDeviceMemoryProperties memory_properties;
    vkGetPhysicalDeviceMemoryProperties(_device->physical_device()->vk(), &memory_properties);
