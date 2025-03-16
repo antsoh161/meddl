@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
+#include "core/log.h"
 
 namespace {
 constexpr VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -12,7 +13,29 @@ debug_cb(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
          const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
          void* pUserData)
 {
-   std::println("Validation layer: {}", pCallbackData->pMessage);
+   std::string type_str = "test";
+   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
+      type_str += "GENERAL";
+   }
+   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
+      type_str += type_str.empty() ? "VALIDATION" : "|VALIDATION";
+   }
+   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
+      type_str += type_str.empty() ? "PERFORMANCE" : "|PERFORMANCE";
+   }
+
+   if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+   }
+   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+      meddl::log::error("Vk ERROR [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
+      meddl::log::warn("Vk WARNING[{}]: {}", type_str.c_str(), pCallbackData->pMessage);
+   }
+   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+      meddl::log::info("Vk INFO[{}]: {}", type_str.c_str(), pCallbackData->pMessage);
+   }
+   else {
+      meddl::log::debug("Vk ?? [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
+   }
    return VK_FALSE;
 }
 }  // namespace

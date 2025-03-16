@@ -52,9 +52,9 @@ const std::array<VkVertexInputAttributeDescription, 4> create_vertex_attribute_d
 }
 
 Buffer::Buffer(Device* device,
-                           VkDeviceSize size,
-                           VkBufferUsageFlags usage,
-                           VkMemoryPropertyFlags properties)
+               VkDeviceSize size,
+               VkBufferUsageFlags usage,
+               VkMemoryPropertyFlags properties)
     : _device(device), _size(size)
 {
    VkBufferCreateInfo bufferInfo{};

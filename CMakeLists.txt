@@ -18,6 +18,9 @@ if(BUILD_TESTS)
 endif()
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
+set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of fmt" FORCE)
+set(SPDLOG_ENABLE_THREAD_POOL ON CACHE BOOL "Enable thread pool for async logging" FORCE)
+add_subdirectory(third_party/spdlog)
 
 find_package(Vulkan REQUIRED)
 
@@ -44,7 +47,9 @@ target_sources(Meddl PUBLIC
    #       ${modules}
 )
 
-target_link_libraries(Meddl PUBLIC glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread)
+target_link_libraries(Meddl PUBLIC
+                              glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread
+                           spdlog::spdlog)
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
 target_compile_options(
   Meddl

@@ -21,9 +21,9 @@ class Device;
 class Buffer {
   public:
    Buffer(Device* device,
-                VkDeviceSize size,
-                VkBufferUsageFlags usage,
-                VkMemoryPropertyFlags properties);
+          VkDeviceSize size,
+          VkBufferUsageFlags usage,
+          VkMemoryPropertyFlags properties);
    ~Buffer();
 
    Buffer(const Buffer&) = delete;
