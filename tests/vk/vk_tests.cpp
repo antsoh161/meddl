@@ -2,6 +2,7 @@
 #include <print>
 
 #include "vk/async.h"
+#include "vk/buffer.h"
 #include "vk/command.h"
 #include "vk/debug.h"
 #include "vk/defaults.h"
@@ -11,7 +12,6 @@
 #include "vk/shader.h"
 #include "vk/surface.h"
 #include "vk/swapchain.h"
-#include "vk/vertex.h"
 
 using namespace meddl::vk;
 using namespace meddl::glfw;
@@ -112,7 +112,10 @@ class MeddlFixture {
       _vert_mod = std::make_unique<ShaderModule>(_device.get(), _vert_spirv);
       std::println(("frag size: {}, vert size: {}"), _frag_spirv.size(), _vert_spirv.size());
 
-      _pipeline_layout = std::make_unique<PipelineLayout>(_device.get(), 0);
+      _descriptor_set_layout =
+          std::make_unique<DescriptorSetLayout>(_device.get(), defaults::default_ubo_layout());
+      _pipeline_layout =
+          std::make_unique<PipelineLayout>(_device.get(), _descriptor_set_layout.get());
 
       const auto bdesc = meddl::vk::create_vertex_binding_description(0);
       const auto vattr = meddl::vk::create_vertex_attribute_descriptions(0, 0, 0, 0);
@@ -128,8 +131,8 @@ class MeddlFixture {
    void init_command()
    {
       // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
-      _command_pool = std::make_unique<CommandPool>(
-          _device.get(), 0, meddl::vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
+      _command_pool =
+          std::make_unique<CommandPool>(_device.get(), 0, defaults::DEFAULT_COMMAND_POOL_FLAGS);
       _command_buffer = std::make_unique<CommandBuffer>(_device.get(), _command_pool.get());
    }
 
@@ -158,6 +161,7 @@ class MeddlFixture {
    std::unique_ptr<GraphicsPipeline> _graphics_pipeline{};
    std::unique_ptr<CommandPool> _command_pool{};
    std::unique_ptr<CommandBuffer> _command_buffer{};
+   std::unique_ptr<DescriptorSetLayout> _descriptor_set_layout{};
 
    std::unique_ptr<ShaderModule> _frag_mod{};
    std::unique_ptr<ShaderModule> _vert_mod{};

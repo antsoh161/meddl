@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include "GLFW/glfw3.h"
+#include "vk/descriptor.h"
 #include "vk/device.h"
 #include "vk/renderpass.h"
 #include "vk/shader.h"
@@ -11,7 +11,9 @@ namespace meddl::vk {
 
 class PipelineLayout {
   public:
-   PipelineLayout(Device* device, VkPipelineLayoutCreateFlags flags);
+   PipelineLayout(Device* device,
+                  const DescriptorSetLayout* dsl,
+                  VkPipelineLayoutCreateFlags flags = 0);
    ~PipelineLayout();
 
    PipelineLayout(const PipelineLayout&) = delete;

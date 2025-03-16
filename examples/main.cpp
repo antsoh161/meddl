@@ -3,8 +3,8 @@
 #include <thread>
 
 #include "GLFW/glfw3.h"
+#include "engine/gpu_types.h"
 #include "engine/renderer.h"
-#include "engine/vertex.h"
 
 struct Ball {
    glm::vec3 position{0.0f, 0.0f, 0.0f};
@@ -14,7 +14,7 @@ struct Ball {
 
    [[nodiscard]] std::vector<meddl::engine::Vertex> generate_vertices() const
    {
-      const int segments = 20;
+      const int segments = 60;
       std::vector<meddl::engine::Vertex> vertices;
       vertices.reserve(segments * 3);
 
@@ -46,9 +46,10 @@ struct Ball {
 
       return vertices;
    }
+
    [[nodiscard]] std::vector<uint32_t> generate_indices() const
    {
-      const int segments = 20;
+      const int segments = 60;
       std::vector<uint32_t> indices;
       indices.reserve(segments * 3);
       for (int i = 0; i < segments; i++) {
@@ -62,14 +63,26 @@ struct Ball {
 
    void update()
    {
+      // Store previous position to handle collision properly
+      glm::vec3 previousPosition = position;
       position += velocity;
 
       // bounce off the edges
-      if (position.x + radius > 1.0f || position.x - radius < -1.0f) {
+      if (position.x + radius > 1.0f) {
+         position.x = 1.0f - radius;  // Place ball exactly at the edge
+         velocity.x = -velocity.x;
+      }
+      else if (position.x - radius < -1.0f) {
+         position.x = -1.0f + radius;  // Place ball exactly at the edge
          velocity.x = -velocity.x;
       }
 
-      if (position.y + radius > 1.0f || position.y - radius < -1.0f) {
+      if (position.y + radius > 1.0f) {
+         position.y = 1.0f - radius;  // Place ball exactly at the edge
+         velocity.y = -velocity.y;
+      }
+      else if (position.y - radius < -1.0f) {
+         position.y = -1.0f + radius;  // Place ball exactly at the edge
          velocity.y = -velocity.y;
       }
    }
@@ -80,7 +93,7 @@ auto main() -> int
    meddl::Renderer renderer;
    Ball ball;
 
-   constexpr auto framerate = 16;
+   constexpr auto framerate = 8;
    while (true) {
       glfwPollEvents();
       ball.update();

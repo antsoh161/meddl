@@ -1,6 +1,9 @@
 #include "vk/pipeline.h"
 
 #include <array>
+#include <memory>
+
+#include "vk/descriptor.h"
 
 namespace meddl::vk {
 
@@ -103,7 +106,7 @@ GraphicsPipeline::GraphicsPipeline(
    pipeline_info.pColorBlendState = &color_blending;
    pipeline_info.pDynamicState = &dynamic_state;
    pipeline_info.layout = *_layout;
-   pipeline_info.renderPass = *render_pass;
+   pipeline_info.renderPass = render_pass->vk();
    pipeline_info.subpass = 0;
    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -122,16 +125,20 @@ GraphicsPipeline::~GraphicsPipeline()
    }
 }
 
-PipelineLayout::PipelineLayout(Device* device, VkPipelineLayoutCreateFlags flags) : _device(device)
+PipelineLayout::PipelineLayout(Device* device,
+                               const DescriptorSetLayout* dsl,
+                               VkPipelineLayoutCreateFlags flags)
+    : _device(device)
 {
    // TODO: Layouts, push constant ranges
    VkPipelineLayoutCreateInfo create_info{};
    create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
    create_info.flags = flags;
-   create_info.setLayoutCount = 0;
+   create_info.pSetLayouts = dsl->vk_ptr();
+   create_info.setLayoutCount = 1;
    create_info.pushConstantRangeCount = 0;
 
-   if (vkCreatePipelineLayout(*device, &create_info, device->get_allocators(), &_layout) !=
+   if (vkCreatePipelineLayout(device->vk(), &create_info, device->get_allocators(), &_layout) !=
        VK_SUCCESS) {
       throw std::runtime_error("failed to create pipeline layout!");
    }

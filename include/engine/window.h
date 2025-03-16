@@ -34,6 +34,8 @@ class Window {
                                          nullptr),
                         glfwDestroyWindow)
    {
+      (void)monitor;
+      (void)share;
       glfwSetWindowUserPointer(_window_handle.get(), this);
       glfwSetFramebufferSizeCallback(_window_handle.get(), [](GLFWwindow* window, int, int) {
          auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));

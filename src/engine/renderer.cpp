@@ -3,17 +3,24 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <algorithm>
 #include <array>
 #include <cstring>
+#include <ranges>
 
 #include "core/log.h"
-#include "engine/vertex.h"
-#include "vk/vertex.h"
+#include "engine/gpu_types.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "vk/buffer.h"
+#include "vk/defaults.h"
+#include "vk/descriptor.h"
 
 namespace meddl {
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 Renderer::Renderer()
 {
+   meddl::log::get_logger()->set_level(spdlog::level::debug);
    glfwInit();
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -72,7 +79,11 @@ Renderer::Renderer()
                                                        engine::vertex_layout::normal_offset,
                                                        engine::vertex_layout::texcoord_offset);
 
-   _pipeline_layout = std::make_unique<vk::PipelineLayout>(_device.get(), 0);
+   _descriptor_set_layout =
+       std::make_unique<vk::DescriptorSetLayout>(_device.get(), vk::defaults::default_ubo_layout());
+
+   _pipeline_layout =
+       std::make_unique<vk::PipelineLayout>(_device.get(), _descriptor_set_layout.get());
    _graphics_pipeline = std::make_unique<vk::GraphicsPipeline>(_vert_mod.get(),
                                                                _frag_mod.get(),
                                                                _device.get(),
@@ -85,16 +96,43 @@ Renderer::Renderer()
    _command_pool = std::make_unique<vk::CommandPool>(
        _device.get(), 0, meddl::vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
 
-   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+   std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this](auto) {
       _command_buffers.emplace_back(_device.get(), _command_pool.get());
       _image_available.emplace_back(_device.get());
       _render_finished.emplace_back(_device.get());
+      auto& buffer = _uniform_buffers.emplace_back(
+          _device.get(),
+          engine::transform_layout::stride,
+          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      buffer.map();  // TODO: map memory here?
+
+      const auto pool_sizes = {vk::defaults::default_descriptor_pool_size()};
+      auto& pool = _descriptor_pools.emplace_back(_device.get(), 1, pool_sizes);
+      _descriptor_sets.emplace_back(
+          _device.get(), &pool, _descriptor_set_layout.get());  // todo: refactor
       _fences.emplace_back(_device.get());
-   }
+
+      // Update the descriptor set with uniform buffer binding
+      VkDescriptorBufferInfo buffer_info{};
+      buffer_info.buffer = buffer.vk();
+      buffer_info.offset = 0;
+      buffer_info.range = sizeof(engine::TransformUBO);
+
+      VkWriteDescriptorSet descriptor_write{};
+      descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      descriptor_write.dstSet = _descriptor_sets.back().vk();
+      descriptor_write.dstBinding = 0;
+      descriptor_write.dstArrayElement = 0;
+      descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      descriptor_write.descriptorCount = 1;
+      descriptor_write.pBufferInfo = &buffer_info;
+
+      vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
+   });
 }
 void Renderer::draw()
 {
-   meddl::log::info("Drawing frame: {}", _current_frame);
    _fences.at(_current_frame).wait(_device.get());
    uint32_t image_index{};
    const auto result = vkAcquireNextImageKHR(_device->vk(),
@@ -119,6 +157,8 @@ void Renderer::draw()
    }
    _fences.at(_current_frame).reset(_device.get());
 
+   update_uniform_buffer(_current_frame);
+
    _command_buffers.at(_current_frame).reset();
    _command_buffers.at(_current_frame).begin();
    _command_buffers.at(_current_frame)
@@ -129,6 +169,15 @@ void Renderer::draw()
    _command_buffers.at(_current_frame)
        .set_scissor(vk::defaults::default_scissor(_swapchain->extent()));
    _command_buffers.at(_current_frame).bind_pipeline(_graphics_pipeline.get());
+
+   vkCmdBindDescriptorSets(_command_buffers.at(_current_frame).vk(),
+                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           _pipeline_layout->vk(),
+                           0,
+                           1,
+                           _descriptor_sets.at(_current_frame).vk_ptr(),
+                           0,
+                           nullptr);
    if (_vertex_buffer) {
       draw_vertices();
    }
@@ -270,4 +319,50 @@ void Renderer::draw_vertices(uint32_t vertex_count)
       }
    }
 }
+
+void debug_matrix(const glm::mat4& matrix, const std::string& name)
+{
+   meddl::log::debug("Matrix: {} [", name);
+   for (int i = 0; i < 4; ++i) {
+      meddl::log::debug("  [{:.3f}, {:.3f}, {:.3f}, {:.3f}]",
+                        matrix[0][i],
+                        matrix[1][i],
+                        matrix[2][i],
+                        matrix[3][i]);
+   }
+   meddl::log::debug("]");
+}
+
+void Renderer::update_uniform_buffer(uint32_t current_image)
+{
+   static auto start_time = std::chrono::high_resolution_clock::now();
+
+   auto current_time = std::chrono::high_resolution_clock::now();
+   float time =
+       std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time)
+           .count();
+
+   static int frame_count = 0;
+
+   engine::TransformUBO ubo{};
+   ubo.model = glm::mat4(1.0f);
+
+   const auto aspect = static_cast<float>(static_cast<float>(_swapchain->extent().width) /
+                                          static_cast<float>(_swapchain->extent().width));
+
+   ubo.projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+   ubo.projection[1][1] *= -1;
+   ubo.view = glm::lookAt(
+       glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+   if (frame_count++ % 60 == 0) {
+      debug_matrix(ubo.model, "model");
+      debug_matrix(ubo.view, "view");
+      debug_matrix(ubo.projection, "projection");
+   }
+   frame_count++;
+   // Copy data to already mapped uniform buffer
+   std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
+}
+
 }  // namespace meddl
