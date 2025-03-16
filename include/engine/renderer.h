@@ -3,8 +3,7 @@
 #include <memory>
 #include <optional>
 
-#include "engine/vertex.h"
-#include "vk/vertex.h"
+#include "engine/gpu_types.h"
 #include "vk/vk.h"
 
 namespace meddl {
@@ -27,6 +26,7 @@ class Renderer {
    std::shared_ptr<glfw::Window> window() { return _window; };
 
   private:
+   void update_uniform_buffer(uint32_t current_image);
    // "core"
    std::optional<Debugger> _debugger{};
    std::unique_ptr<vk::Instance> _instance{};
@@ -43,6 +43,11 @@ class Renderer {
    std::vector<vk::CommandBuffer> _command_buffers{};
    std::unique_ptr<vk::Buffer> _vertex_buffer{};
    std::unique_ptr<vk::Buffer> _index_buffer{};
+
+   std::unique_ptr<vk::DescriptorSetLayout> _descriptor_set_layout{};
+   std::vector<vk::Buffer> _uniform_buffers{};
+   std::vector<vk::DescriptorPool> _descriptor_pools{};
+   std::vector<vk::DescriptorSet> _descriptor_sets{};
 
    // Shaders
    std::unique_ptr<vk::ShaderModule> _frag_mod{};

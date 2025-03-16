@@ -1,9 +1,11 @@
 #pragma once
 
 #include "vk/async.h"
+#include "vk/buffer.h"
 #include "vk/command.h"
 #include "vk/debug.h"
 #include "vk/defaults.h"
+#include "vk/descriptor.h"
 #include "vk/device.h"
 #include "vk/instance.h"
 #include "vk/pipeline.h"

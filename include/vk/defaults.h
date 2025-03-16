@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
 #include <print>
 #include <unordered_set>
 
@@ -13,7 +15,8 @@ debug_cb(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
          const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
          void* pUserData)
 {
-   std::string type_str = "test";
+   (void)pUserData;
+   std::string type_str;
    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
       type_str += "GENERAL";
    }
@@ -145,6 +148,23 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
    };
 }
 
-// Vertex
+[[maybe_unused]] static consteval VkDescriptorSetLayoutBinding default_ubo_layout()
+{
+   return {
+       .binding = 0,
+       .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+       .descriptorCount = 1,
+       .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+       .pImmutableSamplers = nullptr,
+   };
+}
+
+[[maybe_unused]] static consteval VkDescriptorPoolSize default_descriptor_pool_size()
+{
+   return {
+       .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+       .descriptorCount = 1,
+   };
+}
 
 }  // namespace meddl::vk::defaults
