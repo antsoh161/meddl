@@ -14,12 +14,12 @@ T xorshift(const T& n, int i)
 }
 
 // a hash function with another name as to not confuse with std::hash
-uint32_t distribute(const uint32_t& n)
-{
-   uint32_t p = 0x55555555ul;                     // NOLINT
-   uint32_t c = 3423571495ul;                     // NOLINT
-   return c * xorshift(p * xorshift(n, 16), 16);  // NOLINT
-}
+// uint32_t distribute(const uint32_t& n)
+// {
+//    uint32_t p = 0x55555555ul;                     // NOLINT
+//    uint32_t c = 3423571495ul;                     // NOLINT
+//    return c * xorshift(p * xorshift(n, 16), 16);  // NOLINT
+// }
 
 // a hash function with another name as to not confuse with std::hash
 uint64_t distribute(const uint64_t& n)
@@ -31,8 +31,8 @@ uint64_t distribute(const uint64_t& n)
 
 // if c++20 rotl is not available:
 template <typename T, typename S>
-std::enable_if_t<std::is_unsigned_v<T>, T> constexpr rotl(const T n, const S i)
-{
+T constexpr rotl(const T n, const S i)
+requires (std::is_unsigned_v<T>) {
    const T m = (std::numeric_limits<T>::digits - 1);
    const T c = i & m;
    return (n << c) | (n >> ((T(0) - c) & m));  // this is usually recognized by the compiler to mean
