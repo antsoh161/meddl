@@ -4,8 +4,19 @@
 #include <string>
 
 #include "GLFW/glfw3.h"
+#include "core/formatter_utils.h"
 
 namespace meddl::glfw {
+enum class WindowEvent {
+   Resize,
+   Close,
+   Focus,
+   Iconify,
+   KeyPress,
+   MouseButton,
+   MouseMove,
+   // ...
+};
 
 struct FrameBufferSize {
    uint32_t width;
@@ -79,3 +90,81 @@ class Window {
 };
 
 }  // namespace meddl::glfw
+
+template <>
+struct std::formatter<meddl::glfw::WindowEvent> {
+   enum class FormatStyle { Normal, Short, Debug };
+   FormatStyle style = FormatStyle::Normal;
+
+   constexpr auto parse(std::format_parse_context& ctx)
+   {
+      auto it = ctx.begin();
+      if (it != ctx.end() && *it != '}') {
+         if (*it == 's') {
+            style = FormatStyle::Short;
+            ++it;
+         }
+         else if (*it == 'd') {
+            style = FormatStyle::Debug;
+            ++it;
+         }
+      }
+      return it;
+   }
+
+   auto format(const meddl::glfw::WindowEvent& event, std::format_context& ctx) const
+   {
+      constexpr auto to_string = [](meddl::glfw::WindowEvent e) constexpr -> std::string_view {
+         switch (e) {
+            case meddl::glfw::WindowEvent::Resize:
+               return "Resize";
+            case meddl::glfw::WindowEvent::Close:
+               return "Close";
+            case meddl::glfw::WindowEvent::Focus:
+               return "Focus";
+            case meddl::glfw::WindowEvent::Iconify:
+               return "Iconify";
+            case meddl::glfw::WindowEvent::KeyPress:
+               return "KeyPress";
+            case meddl::glfw::WindowEvent::MouseButton:
+               return "MouseButton";
+            case meddl::glfw::WindowEvent::MouseMove:
+               return "MouseMove";
+            default:
+               return "Unknown";
+         }
+      };
+
+      constexpr auto to_short_string =
+          [](meddl::glfw::WindowEvent e) constexpr -> std::string_view {
+         switch (e) {
+            case meddl::glfw::WindowEvent::Resize:
+               return "RSZ";
+            case meddl::glfw::WindowEvent::Close:
+               return "CLO";
+            case meddl::glfw::WindowEvent::Focus:
+               return "FOC";
+            case meddl::glfw::WindowEvent::Iconify:
+               return "ICO";
+            case meddl::glfw::WindowEvent::KeyPress:
+               return "KEY";
+            case meddl::glfw::WindowEvent::MouseButton:
+               return "BTN";
+            case meddl::glfw::WindowEvent::MouseMove:
+               return "MOV";
+            default:
+               return "UNK";
+         }
+      };
+
+      switch (style) {
+         case FormatStyle::Short:
+            return std::format_to(ctx.out(), "{}", to_short_string(event));
+         case FormatStyle::Debug:
+            return std::format_to(ctx.out(), "{}({})", to_string(event), static_cast<int>(event));
+         case FormatStyle::Normal:
+         default:
+            return std::format_to(ctx.out(), "{}", to_string(event));
+      }
+   }
+};
