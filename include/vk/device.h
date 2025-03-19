@@ -58,7 +58,7 @@ class Device {
           const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
           const std::unordered_set<std::string>& device_extensions,
           const std::optional<VkPhysicalDeviceFeatures>& device_features = std::nullopt,
-          const std::optional<Debugger>& debugger = std::nullopt);
+          const std::set<std::string>& validation_layers = {});
    ~Device();
 
    Device(const Device&) = delete;

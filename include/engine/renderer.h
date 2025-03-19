@@ -10,7 +10,7 @@ namespace meddl {
 
 class Renderer {
   public:
-   Renderer();
+   Renderer(std::shared_ptr<glfw::Window> window);
    ~Renderer() = default;
 
    Renderer(const Renderer&) = delete;
@@ -28,7 +28,6 @@ class Renderer {
   private:
    void update_uniform_buffer(uint32_t current_image);
    // "core"
-   std::optional<Debugger> _debugger{};
    std::unique_ptr<vk::Instance> _instance{};
    std::shared_ptr<glfw::Window> _window{};
    std::unique_ptr<vk::Surface> _surface{};

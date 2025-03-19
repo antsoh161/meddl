@@ -49,13 +49,8 @@ class MeddlFixture {
       glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // Headless for tests
 #endif
       auto app_info = meddl::vk::defaults::app_info();
-      auto debug_info = meddl::vk::defaults::debug_info();
-      _instance = std::make_unique<Instance>(app_info, debug_info, _debugger);
-   }
-   void init_debugger()
-   {
-      _debugger = std::make_optional<Debugger>();
-      _debugger->add_validation_layer("VK_LAYER_KHRONOS_validation");
+      const auto debug_config = std::make_optional<DebugConfiguration>();
+      _instance = std::make_unique<Instance>(app_info, debug_config);
    }
    void init_window()
    {
@@ -80,7 +75,7 @@ class MeddlFixture {
       auto config = QueueConfiguration(present_index.value());
       std::unordered_map<uint32_t, QueueConfiguration> configs = {{graphics_index.value(), config}};
       _device = std::make_unique<Device>(
-          physical_device.get(), configs, extensions, std::nullopt, _debugger);
+          physical_device.get(), configs, extensions, std::nullopt, _instance->debugger()->get_active_validation_layers());
    }
    void init_swapchain()
    {
@@ -138,7 +133,6 @@ class MeddlFixture {
 
    void init_all()
    {
-      init_debugger();
       init_instance();
       init_window();
       init_surface();
@@ -192,7 +186,6 @@ TEST_CASE_METHOD(MeddlFixture, "CommandBufferLifecycle")
 
 TEST_CASE_METHOD(MeddlFixture, "CommandBufferBadOrder")
 {
-   init_debugger();
    init_instance();
    init_window();
    init_surface();
@@ -243,7 +236,6 @@ TEST_CASE_METHOD(MeddlFixture, "Renderpass")
 
 TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
 {
-   init_debugger();
    init_instance();
    init_window();
    init_surface();

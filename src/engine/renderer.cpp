@@ -6,7 +6,10 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <memory>
+#include <optional>
 #include <ranges>
+#include <utility>
 
 #include "core/log.h"
 #include "engine/gpu_types.h"
@@ -18,20 +21,12 @@
 
 namespace meddl {
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
-Renderer::Renderer()
+Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(window))
 {
    meddl::log::get_logger()->set_level(spdlog::level::debug);
-   glfwInit();
-   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
    constexpr auto app_info = meddl::vk::defaults::app_info();
-   constexpr auto debug_info = meddl::vk::defaults::debug_info();
-   _debugger = std::make_optional<Debugger>();
-   _debugger->add_validation_layer("VK_LAYER_KHRONOS_validation");
-   _instance = std::make_unique<vk::Instance>(app_info, debug_info, _debugger);
-   _window = std::make_shared<glfw::Window>(
-       vk::defaults::DEFAULT_WINDOW_HEIGHT, vk::defaults::DEFAULT_WINDOW_WIDTH, "Test Window");
-
+   auto debug_config = vk::DebugConfiguration();
+   _instance = std::make_unique<vk::Instance>(app_info, debug_config);
    _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
 
    std::optional<int> present_index{};
@@ -48,8 +43,11 @@ Renderer::Renderer()
    auto config = vk::QueueConfiguration(present_index.value());
    std::unordered_map<uint32_t, vk::QueueConfiguration> configs = {
        {graphics_index.value(), config}};
-   _device = std::make_unique<vk::Device>(
-       physical_device.get(), configs, extensions, std::nullopt, _debugger);
+   _device = std::make_unique<vk::Device>(physical_device.get(),
+                                          configs,
+                                          extensions,
+                                          std::nullopt,
+                                          _instance->debugger()->get_active_validation_layers());
 
    auto color_attachement = vk::defaults::color_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
    _renderpass = std::make_unique<vk::RenderPass>(_device.get(), color_attachement);
