@@ -64,3 +64,12 @@ class Renderer {
    uint32_t _index_count{0};
 };
 }  // namespace meddl
+
+template <>
+struct std::formatter<meddl::Renderer> : std::formatter<std::string> {
+   auto format(const meddl::Renderer& value, std::format_context& ctx) const
+   {
+      std::string str = std::format("Renderer({})", static_cast<const void*>(&value));
+      return std::formatter<std::string>::format(str, ctx);
+   }
+};
