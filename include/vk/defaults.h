@@ -8,40 +8,6 @@
 #include "GLFW/glfw3.h"
 #include "core/log.h"
 
-namespace {
-constexpr VKAPI_ATTR VkBool32 VKAPI_CALL
-debug_cb(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-         VkDebugUtilsMessageTypeFlagsEXT messageType,
-         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-         void* pUserData)
-{
-   (void)pUserData;
-   std::string type_str;
-   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
-      type_str += "GENERAL";
-   }
-   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
-      type_str += type_str.empty() ? "VALIDATION" : "|VALIDATION";
-   }
-   if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
-      type_str += type_str.empty() ? "PERFORMANCE" : "|PERFORMANCE";
-   }
-
-   if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-   }
-   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-      meddl::log::error("Vk ERROR [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
-      meddl::log::warn("Vk WARNING[{}]: {}", type_str.c_str(), pCallbackData->pMessage);
-   }
-   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-      meddl::log::info("Vk INFO[{}]: {}", type_str.c_str(), pCallbackData->pMessage);
-   }
-   else {
-      meddl::log::debug("Vk ?? [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
-   }
-   return VK_FALSE;
-}
-}  // namespace
 namespace meddl::vk::defaults {
 //! Window defaults
 constexpr uint32_t DEFAULT_WINDOW_WIDTH = 800;
@@ -84,21 +50,6 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
            "No engine",
            VK_MAKE_VERSION(1, 0, 0),
            VK_API_VERSION_1_0};
-}
-
-[[maybe_unused]] static constexpr VkDebugUtilsMessengerCreateInfoEXT debug_info()
-{
-   return {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-           nullptr,
-           0,
-           VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-           VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-               VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-               VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-           debug_cb,
-           nullptr};
 }
 
 //! Renderpass Creation

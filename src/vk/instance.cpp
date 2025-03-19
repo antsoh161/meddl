@@ -1,10 +1,10 @@
 #include "vk/instance.h"
+#include <print>
+#include "vk/debug.h"
 
 namespace meddl::vk {
 
-Instance::Instance(VkApplicationInfo app_info,
-                   VkDebugUtilsMessengerCreateInfoEXT debug_info,
-                   std::optional<Debugger>& debugger)
+Instance::Instance(VkApplicationInfo app_info, const std::optional<DebugConfiguration>& debug_config)
 {
    VkInstanceCreateInfo create_info{};
    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -16,18 +16,25 @@ Instance::Instance(VkApplicationInfo app_info,
    std::vector<const char*> extensions(ext_span.begin(), ext_span.end());
 
    std::vector<const char*> layers_cstyle{};
-   if (debugger.has_value()) {
+   DebugCreateInfoChain debug_chain;
+   if (debug_config.has_value()) {
+      meddl::log::info("We have debug config!, layers: {}", debug_config->layers.size());
+      _debugger = std::make_unique<Debugger>(*debug_config);
+      debug_chain = _debugger->make_create_info_chain();
       extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-      create_info.enabledLayerCount = debugger->get_active_validation_layers().size();
+      create_info.enabledLayerCount = _debugger->get_active_validation_layers().size();
 
-      const auto& layers = debugger->get_active_validation_layers();
+      const auto& layers = _debugger->get_active_validation_layers();
       for (const auto& layer : layers) {
          layers_cstyle.push_back(layer.c_str());
+         meddl::log::info("Added cstyle layer: {}", layer.c_str());
       }
       create_info.ppEnabledLayerNames = layers_cstyle.data();
-      create_info.pNext = &debug_info;
+      meddl::log::info("enabled layers: {}", layers_cstyle.size());
+      create_info.pNext = &debug_chain.debug_create_info;
    }
    else {
+      create_info.ppEnabledLayerNames = nullptr;
       create_info.enabledLayerCount = 0;
       create_info.pNext = nullptr;
    }
@@ -50,11 +57,18 @@ Instance::Instance(VkApplicationInfo app_info,
    for (const auto& device : devices) {
       _physical_devices.emplace_back(std::make_shared<PhysicalDevice>(this, device));
    }
+
+   if (_debugger && _instance) {
+      _debugger->init(_instance, debug_chain);
+   }
    // TODO: extension function pointers?
 }
 
 Instance::~Instance()
 {
+   if (_debugger) {
+      _debugger->deinit(_instance);
+   }
    _physical_devices.clear();
    vkDestroyInstance(_instance, nullptr);
 }
