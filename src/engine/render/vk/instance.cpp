@@ -1,10 +1,13 @@
 #include "engine/render/vk/instance.h"
+
 #include <print>
+
 #include "engine/render/vk/debug.h"
 
 namespace meddl::render::vk {
 
-Instance::Instance(VkApplicationInfo app_info, const std::optional<DebugConfiguration>& debug_config)
+Instance::Instance(VkApplicationInfo app_info,
+                   const std::optional<DebugConfiguration>& debug_config)
 {
    VkInstanceCreateInfo create_info{};
    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -77,4 +80,4 @@ const std::vector<std::shared_ptr<PhysicalDevice>>& Instance::get_physical_devic
 {
    return _physical_devices;
 }
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

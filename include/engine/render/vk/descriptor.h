@@ -63,4 +63,4 @@ class DescriptorSet {
    Device* _device;
    VkDescriptorSet _set = VK_NULL_HANDLE;
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

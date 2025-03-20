@@ -103,4 +103,4 @@ Semaphore::~Semaphore()
       vkDestroySemaphore(_device->vk(), _semaphore, nullptr);
    }
 }
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

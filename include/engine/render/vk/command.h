@@ -85,4 +85,4 @@ class CommandBuffer {
    State _state{State::Ready};
 };
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

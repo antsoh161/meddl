@@ -33,4 +33,4 @@ RenderPass::~RenderPass()
    }
 }
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

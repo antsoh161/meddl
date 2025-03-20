@@ -3,10 +3,10 @@
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
-#include "engine/window.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/hash.hpp"
 #include "engine/render/vk/renderpass.h"
+#include "engine/window.h"
 
 namespace meddl::render::vk {
 
@@ -74,4 +74,4 @@ class Swapchain {
    std::vector<VkImageView> _image_views{};
    std::vector<VkFramebuffer> _framebuffers{};
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

@@ -235,4 +235,4 @@ uint32_t Buffer::find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags pro
 
    throw std::runtime_error("Failed to find suitable memory type");
 }
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

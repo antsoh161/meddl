@@ -20,10 +20,10 @@ Surface::~Surface()
 }
 
 Surface::Surface(Surface&& other) noexcept
-    : _surface(other._surface), _instance(other._instance), _id(other._id) 
+    : _surface(other._surface), _instance(other._instance), _id(other._id)
 {
-    other._surface = VK_NULL_HANDLE;
-    other._id = 0;
+   other._surface = VK_NULL_HANDLE;
+   other._id = 0;
 }
 
 Surface& Surface::operator=(Surface&& other) noexcept
@@ -59,7 +59,6 @@ std::expected<Surface, surface_error> Surface::create<meddl::platform::glfw_wind
           .code = static_cast<int>(res),
       });
    }
-
    return Surface(surface, instance);
 }
 

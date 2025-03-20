@@ -118,4 +118,4 @@ constexpr VkCommandBufferUsageFlags DEFAULT_BUFFER_USAGE_FLAGS =
    };
 }
 
-}  // namespace meddl::vk::defaults
+}  // namespace meddl::render::vk::defaults

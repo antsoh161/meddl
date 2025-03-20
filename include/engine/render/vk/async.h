@@ -61,4 +61,4 @@ class Lock {
 Lock(Device*, Fence&) -> Lock<Fence>;
 Lock(Device*, Semaphore&) -> Lock<Semaphore>;
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

@@ -197,4 +197,4 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::end_renderpass()
    return {};
 }
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

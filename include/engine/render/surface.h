@@ -9,7 +9,7 @@
 namespace meddl::render {
 
 // Forward declarations for render API types
-namespace vk_later {
+namespace vk {
 class Instance;
 struct surface_handle;
 }  // namespace vk
@@ -63,4 +63,4 @@ class Surface {
        const WindowHandle& window, void* api_instance);
 };
 
-}  // namespace meddl::renderer
+}  // namespace meddl::render

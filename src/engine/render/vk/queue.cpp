@@ -9,4 +9,4 @@ Queue::Queue(VkQueue queue, uint32_t queue_index, const QueueConfiguration& conf
 
 // Queue::~Queue(){
 // }
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

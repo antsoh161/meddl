@@ -34,4 +34,4 @@ class Queue {
    uint32_t _queue_index{};
    VkQueue _queue;
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

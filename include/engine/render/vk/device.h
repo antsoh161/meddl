@@ -83,4 +83,4 @@ class Device {
    PhysicalDevice* _physical_device;
    std::vector<DeviceExtensions> _extensions{};
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

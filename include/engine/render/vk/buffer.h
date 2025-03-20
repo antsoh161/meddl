@@ -53,4 +53,4 @@ class Buffer {
 
    uint32_t find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk
