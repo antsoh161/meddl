@@ -32,7 +32,8 @@ uint64_t distribute(const uint64_t& n)
 // if c++20 rotl is not available:
 template <typename T, typename S>
 T constexpr rotl(const T n, const S i)
-requires (std::is_unsigned_v<T>) {
+   requires(std::is_unsigned_v<T>)
+{
    const T m = (std::numeric_limits<T>::digits - 1);
    const T c = i & m;
    return (n << c) | (n >> ((T(0) - c) & m));  // this is usually recognized by the compiler to mean

@@ -28,7 +28,7 @@ enum class ValidationLayerType : uint8_t {
 
 //! Configuration for users
 struct DebugConfiguration {
-   DebugConfiguration() {meddl::log::info("Building a config?");}
+   DebugConfiguration() { meddl::log::info("Building a config?"); }
    std::set<std::string> layers{"VK_LAYER_KHRONOS_validation"};
    std::set<ValidationLayerType> validation_types{ValidationLayerType::All};
    ValidationLayerSeverity msg_severity{ValidationLayerSeverity::Warning};
@@ -46,7 +46,7 @@ struct DebugConfiguration {
 };
 
 //! Struct to chain all create_infos together, where the vectors
-//! only live as long as necessary 
+//! only live as long as necessary
 struct DebugCreateInfoChain {
    VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
    VkValidationFeaturesEXT validation_features{};
@@ -104,4 +104,4 @@ class Debugger {
    PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT{nullptr};
 };
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

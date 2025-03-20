@@ -74,8 +74,11 @@ class MeddlFixture {
 
       auto config = QueueConfiguration(present_index.value());
       std::unordered_map<uint32_t, QueueConfiguration> configs = {{graphics_index.value(), config}};
-      _device = std::make_unique<Device>(
-          physical_device.get(), configs, extensions, std::nullopt, _instance->debugger()->get_active_validation_layers());
+      _device = std::make_unique<Device>(physical_device.get(),
+                                         configs,
+                                         extensions,
+                                         std::nullopt,
+                                         _instance->debugger()->get_active_validation_layers());
    }
    void init_swapchain()
    {

@@ -195,4 +195,4 @@ VkDebugUtilsMessengerEXT* Debugger::get_messenger()
    return &_messenger;
 }
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

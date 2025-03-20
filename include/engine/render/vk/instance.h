@@ -32,4 +32,4 @@ class Instance {
    std::unique_ptr<Debugger> _debugger;
    std::vector<std::shared_ptr<PhysicalDevice>> _physical_devices{};
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

@@ -54,4 +54,4 @@ class GraphicsPipeline {
    Device* _device;
    VkPipeline _pipeline{VK_NULL_HANDLE};
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

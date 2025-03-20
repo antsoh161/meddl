@@ -42,5 +42,4 @@ template <>
 std::expected<Surface, surface_error> Surface::create<meddl::platform::glfw_window_handle>(
     const meddl::platform::glfw_window_handle& window, meddl::render::vk::Instance* instance);
 
-
 }  // namespace meddl::render::vk

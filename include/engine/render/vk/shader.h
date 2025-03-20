@@ -51,4 +51,4 @@ class ShaderProgram {
    std::vector<uint32_t> _vertex{};
    std::vector<uint32_t> _fragment{};
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

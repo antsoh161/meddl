@@ -151,4 +151,4 @@ PipelineLayout::~PipelineLayout()
    }
 }
 
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

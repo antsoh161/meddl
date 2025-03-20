@@ -22,4 +22,4 @@ class RenderPass {
    VkRenderPass _render_pass;
    Device* _device;
 };
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk

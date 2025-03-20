@@ -137,4 +137,4 @@ void Device::wait_idle()
       throw std::runtime_error("Failed to wait for device idle");
    }
 }
-}  // namespace meddl::vk
+}  // namespace meddl::render::vk
