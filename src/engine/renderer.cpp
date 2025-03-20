@@ -13,21 +13,47 @@
 
 #include "core/log.h"
 #include "engine/gpu_types.h"
+#include "engine/render/vk/buffer.h"
+#include "engine/render/vk/defaults.h"
+#include "engine/render/vk/descriptor.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "vk/buffer.h"
-#include "vk/defaults.h"
-#include "vk/descriptor.h"
 
-namespace meddl {
+namespace meddl::render {
+
+Renderer RendererBuilder::build()
+{
+   return make_glfw_vulkan();
+}
+
+Renderer RendererBuilder::make_glfw_vulkan()
+{
+   if (!glfwInit()) {
+      throw std::runtime_error("Failed to initialize GLFW");
+   }
+
+   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+   auto window =
+       std::make_shared<glfw::Window>(_config.window_width, _config.window_height, _config.title);
+
+   // Create and return the renderer
+   return {window};
+}
+
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(window))
 {
    meddl::log::get_logger()->set_level(spdlog::level::debug);
-   constexpr auto app_info = meddl::vk::defaults::app_info();
+   constexpr auto app_info = vk::defaults::app_info();
    auto debug_config = vk::DebugConfiguration();
    _instance = std::make_unique<vk::Instance>(app_info, debug_config);
-   _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
+   // _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
+   _surface = std::make_unique<render::vk::Surface>(
+       render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()},
+                                   _instance.get())
+           .value());
 
    std::optional<int> present_index{};
    std::optional<int> graphics_index{};
@@ -38,7 +64,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    }
 
    auto physical_device = _instance->get_physical_devices().front();
-   auto extensions = meddl::vk::defaults::device_extensions();
+   auto extensions = vk::defaults::device_extensions();
 
    auto config = vk::QueueConfiguration(present_index.value());
    std::unordered_map<uint32_t, vk::QueueConfiguration> configs = {
@@ -70,12 +96,12 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _frag_mod = std::make_unique<vk::ShaderModule>(_device.get(), _frag_spirv);
    _vert_mod = std::make_unique<vk::ShaderModule>(_device.get(), _vert_spirv);
 
-   const auto bdesc = meddl::vk::create_vertex_binding_description(engine::vertex_layout::stride);
+   const auto bdesc = vk::create_vertex_binding_description(engine::vertex_layout::stride);
    const auto vattr =
-       meddl::vk::create_vertex_attribute_descriptions(engine::vertex_layout::position_offset,
-                                                       engine::vertex_layout::color_offset,
-                                                       engine::vertex_layout::normal_offset,
-                                                       engine::vertex_layout::texcoord_offset);
+       vk::create_vertex_attribute_descriptions(engine::vertex_layout::position_offset,
+                                                engine::vertex_layout::color_offset,
+                                                engine::vertex_layout::normal_offset,
+                                                engine::vertex_layout::texcoord_offset);
 
    _descriptor_set_layout =
        std::make_unique<vk::DescriptorSetLayout>(_device.get(), vk::defaults::default_ubo_layout());
@@ -92,7 +118,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
    _command_pool = std::make_unique<vk::CommandPool>(
-       _device.get(), 0, meddl::vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
+       _device.get(), 0, vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
 
    std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this](auto) {
       _command_buffers.emplace_back(_device.get(), _command_pool.get());
@@ -353,14 +379,14 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    ubo.view = glm::lookAt(
        glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-   if (frame_count++ % 60 == 0) {
-      debug_matrix(ubo.model, "model");
-      debug_matrix(ubo.view, "view");
-      debug_matrix(ubo.projection, "projection");
-   }
+   // if (frame_count++ % 60 == 0) {
+   //    debug_matrix(ubo.model, "model");
+   //    debug_matrix(ubo.view, "view");
+   //    debug_matrix(ubo.projection, "projection");
+   // }
    frame_count++;
    // Copy data to already mapped uniform buffer
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
 }
 
-}  // namespace meddl
+}  // namespace meddl::render

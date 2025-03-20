@@ -1,8 +1,8 @@
 #pragma once
 
 #include <concepts>
-#include "GLFW/glfw3.h"
 
+#include "GLFW/glfw3.h"
 
 namespace meddl::platform {
 struct glfw_window_handle {
@@ -10,7 +10,7 @@ struct glfw_window_handle {
    GLFWwindow* handle;
 
    explicit operator GLFWwindow*() const { return handle; }
-   [[nodiscard]] GLFWwindow* native() const {return handle;}
+   [[nodiscard]] GLFWwindow* native() const { return handle; }
 };
 
 #ifdef EMSCRIPTEN

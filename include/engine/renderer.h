@@ -2,11 +2,77 @@
 
 #include <memory>
 #include <optional>
+#include <stdexcept>
 
 #include "engine/gpu_types.h"
-#include "vk/vk.h"
+#include "engine/render/vk/vk.h"
+#include "engine/window.h"
 
-namespace meddl {
+namespace meddl::render {
+
+struct render_config {
+   std::string app_name{"Meddl Leude"};
+   uint32_t version = 1;
+   int32_t window_width = 800;
+   int32_t window_height = 600;
+   std::string title{"Meddl Engine"};
+   bool enable_debugger{true};
+   bool vsync{true};
+};
+
+class Renderer;
+class RendererBuilder {
+  public:
+   enum class Platform { Glfw, Web };
+   enum class Backend { Vulkan, WebGPU };
+
+   RendererBuilder(Platform platform, Backend backend) : _platform(platform), _backend(backend)
+   {
+      if (platform != Platform::Glfw || backend != Backend::Vulkan) {
+         throw std::invalid_argument("Only glfw + vulkan is supported");
+      }
+   }
+
+   // Configure the application
+   RendererBuilder& app_name(std::string name)
+   {
+      _config.app_name = std::move(name);
+      return *this;
+   }
+
+   RendererBuilder& window_size(int width, int height)
+   {
+      _config.window_width = width;
+      _config.window_height = height;
+      return *this;
+   }
+
+   RendererBuilder& window_title(std::string title)
+   {
+      _config.title = std::move(title);
+      return *this;
+   }
+
+   RendererBuilder& validation(bool enable)
+   {
+      _config.enable_debugger = enable;
+      return *this;
+   }
+
+   RendererBuilder& vsync(bool enable)
+   {
+      _config.vsync = enable;
+      return *this;
+   }
+
+   Renderer build();
+
+  private:
+   Renderer make_glfw_vulkan();
+   Platform _platform;
+   Backend _backend;
+   render_config _config;
+};
 
 class Renderer {
   public:
@@ -24,6 +90,8 @@ class Renderer {
    void draw();
 
    std::shared_ptr<glfw::Window> window() { return _window; };
+
+   void callback();
 
   private:
    void update_uniform_buffer(uint32_t current_image);
@@ -63,11 +131,11 @@ class Renderer {
    uint32_t _vertex_count{0};
    uint32_t _index_count{0};
 };
-}  // namespace meddl
+}  // namespace meddl::render
 
 template <>
-struct std::formatter<meddl::Renderer> : std::formatter<std::string> {
-   auto format(const meddl::Renderer& value, std::format_context& ctx) const
+struct std::formatter<meddl::render::Renderer> : std::formatter<std::string> {
+   auto format(const meddl::render::Renderer& value, std::format_context& ctx) const
    {
       std::string str = std::format("Renderer({})", static_cast<const void*>(&value));
       return std::formatter<std::string>::format(str, ctx);
