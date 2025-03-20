@@ -1,10 +1,19 @@
+
+#include <memory>
 #include <print>
 #include <shaderc/shaderc.hpp>
+#include <stdexcept>
 #include <thread>
 
 #include "GLFW/glfw3.h"
+#include "core/formatter_utils.h"
+#include "core/log.h"
+#include "engine/events/event.h"
+#include "engine/events/keycodes.h"
 #include "engine/gpu_types.h"
 #include "engine/renderer.h"
+#include "engine/window.h"
+#include "spdlog/common.h"
 
 struct Ball {
    glm::vec3 position{0.0f, 0.0f, 0.0f};
@@ -88,22 +97,44 @@ struct Ball {
    }
 };
 
-auto main() -> int
+int main()
 {
-   meddl::Renderer renderer;
+   using namespace meddl::render;
+   using namespace meddl::events;
+   auto renderer =
+       RendererBuilder(RendererBuilder::Platform::Glfw, RendererBuilder::Backend::Vulkan).build();
    Ball ball;
+   EventHandler handler;
+
+   KeyPressed quitter{.keycode = Key::Q};
+   handler.subscribe(quitter, [](const Event&) {
+      std::exit(0);
+      return true;
+   });
+
+   KeyPressed size_inc{.keycode = Key::Space};
+   KeyPressed size_dec{.keycode = Key::Space, .modifiers = KeyModifier::Shift};
+   handler.subscribe(size_inc, [&ball](const Event&){
+      ball.radius += 0.1;
+      return true;
+   });
+   handler.subscribe(size_dec, [&ball](const Event&){
+      ball.radius -= 0.1;
+      return true;
+   });
+
+
+   renderer.window()->register_event_handler(handler);
 
    constexpr auto framerate = 8;
    while (true) {
-      glfwPollEvents();
+      renderer.window()->poll_events();
       ball.update();
       auto vertices = ball.generate_vertices();
-      auto indicies = ball.generate_indices();
+      auto indices = ball.generate_indices();
       renderer.set_vertices(vertices);
-      renderer.set_indices(indicies);
+      renderer.set_indices(indices);
       renderer.draw();
       std::this_thread::sleep_for(std::chrono::milliseconds(framerate));
    }
-
-   return EXIT_SUCCESS;
 }
