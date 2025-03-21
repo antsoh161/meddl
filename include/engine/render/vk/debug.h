@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -28,18 +29,18 @@ enum class ValidationLayerType : uint8_t {
 
 //! Configuration for users
 struct DebugConfiguration {
-   DebugConfiguration() { meddl::log::info("Building a config?"); }
    std::set<std::string> layers{"VK_LAYER_KHRONOS_validation"};
    std::set<ValidationLayerType> validation_types{ValidationLayerType::All};
    ValidationLayerSeverity msg_severity{ValidationLayerSeverity::Warning};
 
-   bool enable_debug_markers{false};
+   bool enable_debug_markers{true};
    bool enable_gpu_validation{false};
    bool enable_best_practices{false};
    bool enable_sync_validation{false};
-
    bool disable_shader_validation{false};
    bool disable_thread_safety{false};
+   bool enable_debug_printf{false};
+   bool enable_api_dump_layer{false};
 
    void* user_data{nullptr};
    PFN_vkDebugUtilsMessengerCallbackEXT custom_callback{nullptr};
@@ -54,6 +55,9 @@ struct DebugCreateInfoChain {
    std::vector<VkValidationFeatureDisableEXT> disabled_features{};
 };
 
+class Device;
+class Queue;
+class CommandBuffer;
 //! @note Debugger and instance has kinda a circular dependency
 //! so this class should be owned by Instance
 class Debugger {
@@ -75,19 +79,30 @@ class Debugger {
    void init(VkInstance instance, const DebugCreateInfoChain& chain);
    void deinit(VkInstance instance);
 
-   // Debug object naming
-   void set_object_name(VkDevice device,
+   //! @note on markers, in vulkan its all stack based
+   //! i.e. you just call end_region, and it ends the latest
+   //! created marker
+   void set_object_name(Device* device,
                         uint64_t object_handle,
-                        VkObjectType object_type,
-                        const char* name);
+                        VkObjectType type,
+                        const std::string& name);
 
-   // Debug markers for command buffers
-   void begin_region(VkCommandBuffer cmd_buffer, const char* name, const float color[4] = nullptr);
-   void begin_region(VkQueue queue, const char* name, const float color[4] = nullptr);
-   void end_region(VkCommandBuffer cmd_buffer);
-   void end_region(VkQueue queue);
-   void insert_label(VkCommandBuffer cmd_buffer, const char* name, const float color[4] = nullptr);
-   void insert_label(VkQueue queue, const char* name, const float color[4] = nullptr);
+   void begin_region(Queue* queue,
+                     const std::string& name,
+                     const std::array<float, 4>& color = {1.0f, 1.0f, 1.0f, 1.0f});
+   void begin_region(CommandBuffer* buffer,
+                     const std::string& name,
+                     const std::array<float, 4>& color = {1.0f, 1.0f, 1.0f, 1.0f});
+
+   void end_region(CommandBuffer* buffer);
+   void end_region(Queue* queue);
+
+   void insert_label(CommandBuffer* buffer,
+                     const std::string& name,
+                     const std::array<float, 4>& color = {1.0f, 1.0f, 1.0f, 1.0f});
+   void insert_label(Queue* queue,
+                     const std::string& name,
+                     const std::array<float, 4>& color = {1.0f, 1.0f, 1.0f, 1.0f});
 
   private:
    DebugConfiguration _config;
