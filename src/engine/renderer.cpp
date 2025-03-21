@@ -33,7 +33,7 @@ Renderer RendererBuilder::make_glfw_vulkan()
    }
 
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
    auto window =
        std::make_shared<glfw::Window>(_config.window_width, _config.window_height, _config.title);
@@ -76,7 +76,9 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                           _instance->debugger()->get_active_validation_layers());
 
    auto color_attachement = vk::defaults::color_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
-   _renderpass = std::make_unique<vk::RenderPass>(_device.get(), color_attachement);
+   auto depth_attachement = vk::defaults::depth_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
+   _renderpass =
+       std::make_unique<vk::RenderPass>(_device.get(), color_attachement, depth_attachement);
 
    vk::SwapchainOptions options{};
    _swapchain = std::make_unique<vk::Swapchain>(_instance->get_physical_devices().front().get(),
@@ -294,6 +296,13 @@ void Renderer::set_indices(const std::vector<uint32_t>& indices)
    _index_buffer->copy_from(staging_buffer.get(), buffer_size);
    _index_count = static_cast<uint32_t>(indices.size());
 }
+
+void Renderer::set_view_matrix(const glm::mat4 view_matrix)
+{
+   _view_matrix = view_matrix;
+   _camera_updated = true;
+}
+
 void Renderer::set_vertices(const std::vector<engine::Vertex>& vertices)
 {
    const VkDeviceSize buffer_size = vertices.size() * sizeof(engine::Vertex);
@@ -371,19 +380,23 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    engine::TransformUBO ubo{};
    ubo.model = glm::mat4(1.0f);
 
-   const auto aspect = static_cast<float>(static_cast<float>(_swapchain->extent().width) /
-                                          static_cast<float>(_swapchain->extent().width));
+   // Use a wider depth range for better visualization
+   const auto aspect = static_cast<float>(_swapchain->extent().width) /
+                       static_cast<float>(_swapchain->extent().height);
 
-   ubo.projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
-   ubo.projection[1][1] *= -1;
-   ubo.view = glm::lookAt(
-       glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+   // Adjust near and far planes for better depth range
+   ubo.projection = glm::perspective(glm::radians(45.0f), aspect, 0.01f, 100.0f);
+   ubo.projection[1][1] *= -1;  // Flip for Vulkan coordinate system
 
-   // if (frame_count++ % 60 == 0) {
-   //    debug_matrix(ubo.model, "model");
-   //    debug_matrix(ubo.view, "view");
-   //    debug_matrix(ubo.projection, "projection");
-   // }
+   // Use custom view matrix if provided, otherwise use default
+   if (_camera_updated) {
+      ubo.view = _view_matrix;
+   }
+   else {
+      ubo.view = glm::lookAt(
+          glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+   }
+
    frame_count++;
    // Copy data to already mapped uniform buffer
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
