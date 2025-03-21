@@ -13,8 +13,8 @@ namespace meddl::render {
 struct render_config {
    std::string app_name{"Meddl Leude"};
    uint32_t version = 1;
-   int32_t window_width = 800;
-   int32_t window_height = 600;
+   int32_t window_width = 240;
+   int32_t window_height = 160;
    std::string title{"Meddl Engine"};
    bool enable_debugger{true};
    bool vsync{true};
@@ -84,6 +84,7 @@ class Renderer {
    Renderer(Renderer&&) = default;
    Renderer& operator=(Renderer&&) = default;
 
+   void set_view_matrix(const glm::mat4 view_matrix);
    void set_vertices(const std::vector<engine::Vertex>& vertices);
    void set_indices(const std::vector<uint32_t>& indices);
    void draw_vertices(uint32_t vertex_count = 0);
@@ -130,6 +131,8 @@ class Renderer {
    size_t _current_frame{0};
    uint32_t _vertex_count{0};
    uint32_t _index_count{0};
+   glm::mat4 _view_matrix = glm::mat4(1.0f);
+   bool _camera_updated{false};
 };
 }  // namespace meddl::render
 

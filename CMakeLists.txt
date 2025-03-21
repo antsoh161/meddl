@@ -21,6 +21,9 @@ add_subdirectory(third_party/glm)
 set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of fmt" FORCE)
 set(SPDLOG_ENABLE_THREAD_POOL ON CACHE BOOL "Enable thread pool for async logging" FORCE)
 add_subdirectory(third_party/spdlog)
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(third_party/tinygltf)
 
 find_package(Vulkan REQUIRED)
 
