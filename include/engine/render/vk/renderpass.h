@@ -7,7 +7,9 @@ namespace meddl::render::vk {
 
 class RenderPass {
   public:
-   RenderPass(Device* device, const VkAttachmentDescription& color_attachment);
+   RenderPass(Device* device,
+              const VkAttachmentDescription& color_attachment,
+              const VkAttachmentDescription& depth_attachment);
    ~RenderPass();
 
    RenderPass(const RenderPass&) = delete;
@@ -19,7 +21,7 @@ class RenderPass {
    [[nodiscard]] VkRenderPass vk() const { return _render_pass; }
 
   private:
-   VkRenderPass _render_pass;
+   VkRenderPass _render_pass{VK_NULL_HANDLE};
    Device* _device;
 };
 }  // namespace meddl::render::vk
