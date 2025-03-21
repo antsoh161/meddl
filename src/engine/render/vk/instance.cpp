@@ -64,16 +64,17 @@ Instance::Instance(VkApplicationInfo app_info,
    if (_debugger && _instance) {
       _debugger->init(_instance, debug_chain);
    }
-   // TODO: extension function pointers?
 }
 
 Instance::~Instance()
 {
-   if (_debugger) {
+   if (_debugger && _instance) {
       _debugger->deinit(_instance);
    }
    _physical_devices.clear();
-   vkDestroyInstance(_instance, nullptr);
+   if (_instance) {
+      vkDestroyInstance(_instance, nullptr);
+   }
 }
 
 const std::vector<std::shared_ptr<PhysicalDevice>>& Instance::get_physical_devices() const

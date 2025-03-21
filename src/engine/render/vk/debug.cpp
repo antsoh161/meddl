@@ -3,13 +3,13 @@
 #include <vulkan/vulkan_core.h>
 
 #include <algorithm>
-#include <iostream>
 #include <numeric>
-#include <optional>
 #include <stdexcept>
-#include <utility>
 
 #include "core/log.h"
+#include "engine/render/vk/command.h"
+#include "engine/render/vk/device.h"
+#include "engine/render/vk/queue.h"
 
 namespace {
 constexpr VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -31,9 +31,9 @@ default_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
    }
 
    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+      meddl::log::error("Vk ERROR [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
    }
    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-      meddl::log::error("Vk ERROR [{}]: {}", type_str.c_str(), pCallbackData->pMessage);
       meddl::log::warn("Vk WARNING[{}]: {}", type_str.c_str(), pCallbackData->pMessage);
    }
    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
@@ -67,13 +67,110 @@ Debugger::Debugger(DebugConfiguration config) : _config(config)
    }
 }
 
+void Debugger::set_object_name(Device* device,
+                               uint64_t object_handle,
+                               VkObjectType type,
+                               const std::string& name)
+{
+   if (!_config.enable_debug_markers || !vkSetDebugUtilsObjectNameEXT) {
+      return;
+   }
+   VkDebugUtilsObjectNameInfoEXT name_info{};
+   name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+   name_info.objectType = type;
+   name_info.objectHandle = object_handle;
+   name_info.pObjectName = name.c_str();
+
+   vkSetDebugUtilsObjectNameEXT(device->vk(), &name_info);
+}
+
+void Debugger::begin_region(Queue* queue,
+                            const std::string& name,
+                            const std::array<float, 4>& color)
+{
+   if (!_config.enable_debug_markers || !vkQueueBeginDebugUtilsLabelEXT) {
+      return;
+   }
+
+   VkDebugUtilsLabelEXT info{};
+   info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+   info.pLabelName = name.c_str();
+   std::ranges::copy(color, std::begin(info.color));
+   vkQueueBeginDebugUtilsLabelEXT(queue->vk(), &info);
+}
+
+void Debugger::begin_region(CommandBuffer* buffer,
+                            const std::string& name,
+                            const std::array<float, 4>& color)
+{
+   if (!_config.enable_debug_markers || !vkCmdBeginDebugUtilsLabelEXT) {
+      return;
+   }
+   if (buffer->state() != CommandBuffer::State::Recording) {
+      meddl::log::error("Can not debug a buffer region if its not recording");
+   }
+
+   VkDebugUtilsLabelEXT info{};
+   info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+   info.pLabelName = name.c_str();
+   std::ranges::copy(color, std::begin(info.color));
+   vkCmdBeginDebugUtilsLabelEXT(buffer->vk(), &info);
+}
+
+void Debugger::end_region(Queue* queue)
+{
+   if (!_config.enable_debug_markers || !vkQueueEndDebugUtilsLabelEXT) {
+      return;
+   }
+   vkQueueEndDebugUtilsLabelEXT(queue->vk());
+}
+
+void Debugger::end_region(CommandBuffer* buffer)
+{
+   if (!vkCmdEndDebugUtilsLabelEXT) {
+      meddl::log::warn("debug marker end called with no begin function pointer set");
+   }
+   if (!_config.enable_debug_markers || !vkCmdEndDebugUtilsLabelEXT) {
+      return;
+   }
+   vkCmdEndDebugUtilsLabelEXT(buffer->vk());
+}
+
+void Debugger::insert_label(Queue* queue,
+                            const std::string& name,
+                            const std::array<float, 4>& color)
+{
+   if (!_config.enable_debug_markers || !vkQueueInsertDebugUtilsLabelEXT) {
+      return;
+   }
+   VkDebugUtilsLabelEXT info{};
+   info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+   info.pLabelName = name.c_str();
+   std::ranges::copy(color, std::begin(info.color));
+   vkQueueInsertDebugUtilsLabelEXT(queue->vk(), &info);
+}
+
+void Debugger::insert_label(CommandBuffer* buffer,
+                            const std::string& name,
+                            const std::array<float, 4>& color)
+{
+   if (!_config.enable_debug_markers || !vkQueueInsertDebugUtilsLabelEXT) {
+      return;
+   }
+   VkDebugUtilsLabelEXT info{};
+   info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+   info.pLabelName = name.c_str();
+   std::ranges::copy(color, std::begin(info.color));
+   vkCmdInsertDebugUtilsLabelEXT(buffer->vk(), &info);
+}
+
 void Debugger::init(VkInstance instance, const DebugCreateInfoChain& chain)
 {
    if (_active_validation_layers.empty()) {
       return;
    }
 
-   auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+   auto func = std::bit_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
 
    if (!func) {
@@ -86,29 +183,28 @@ void Debugger::init(VkInstance instance, const DebugCreateInfoChain& chain)
 
    // Load debug marker function pointers if debug markers are enabled
    if (_config.enable_debug_markers) {
-      vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(
-          instance, "vkSetDebugUtilsObjectNameEXT");
-      vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkCmdBeginDebugUtilsLabelEXT");
-      vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkCmdEndDebugUtilsLabelEXT");
-      vkCmdInsertDebugUtilsLabelEXT = (PFN_vkCmdInsertDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkCmdInsertDebugUtilsLabelEXT");
-      vkQueueBeginDebugUtilsLabelEXT = (PFN_vkQueueBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkQueueBeginDebugUtilsLabelEXT");
-      vkQueueEndDebugUtilsLabelEXT = (PFN_vkQueueEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkQueueEndDebugUtilsLabelEXT");
-      vkQueueInsertDebugUtilsLabelEXT = (PFN_vkQueueInsertDebugUtilsLabelEXT)vkGetInstanceProcAddr(
-          instance, "vkQueueInsertDebugUtilsLabelEXT");
+      vkSetDebugUtilsObjectNameEXT = std::bit_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+          vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
+      vkCmdBeginDebugUtilsLabelEXT = std::bit_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT"));
+      vkCmdEndDebugUtilsLabelEXT = std::bit_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT"));
+      vkCmdInsertDebugUtilsLabelEXT = std::bit_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkCmdInsertDebugUtilsLabelEXT"));
+      vkQueueBeginDebugUtilsLabelEXT = std::bit_cast<PFN_vkQueueBeginDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkQueueBeginDebugUtilsLabelEXT"));
+      vkQueueEndDebugUtilsLabelEXT = std::bit_cast<PFN_vkQueueEndDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkQueueEndDebugUtilsLabelEXT"));
+      vkQueueInsertDebugUtilsLabelEXT = std::bit_cast<PFN_vkQueueInsertDebugUtilsLabelEXT>(
+          vkGetInstanceProcAddr(instance, "vkQueueInsertDebugUtilsLabelEXT"));
    }
-   // _instance = instance;
 }
 
 void Debugger::deinit(VkInstance instance)
 {
-   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-       instance, "vkDestroyDebugUtilsMessengerEXT");
-   if (func != nullptr) {
+   auto func = std::bit_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+       vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+   if (func) {
       func(instance, _messenger, nullptr /* Allocator */);
    }
 }
@@ -127,7 +223,7 @@ DebugCreateInfoChain Debugger::make_create_info_chain()
 
    chain.debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
    chain.debug_create_info.pNext = nullptr;
-   chain.debug_create_info.flags = 0;
+   chain.debug_create_info.flags = 0;  // None available, as far as I can tell
    chain.debug_create_info.messageSeverity =
        static_cast<VkDebugUtilsMessageSeverityFlagsEXT>(_config.msg_severity);
    chain.debug_create_info.messageType = message_type;

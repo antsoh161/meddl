@@ -157,6 +157,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
       vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
    });
 }
+
 void Renderer::draw()
 {
    _fences.at(_current_frame).wait(_device.get());
@@ -187,9 +188,12 @@ void Renderer::draw()
 
    _command_buffers.at(_current_frame).reset();
    _command_buffers.at(_current_frame).begin();
+   _instance->debugger()->begin_region(
+       &_command_buffers.at(_current_frame), "Frame Rendering", {0.1f, 0.1f, 1.0f, 1.0f});
    _command_buffers.at(_current_frame)
        .begin_renderpass(
            _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
+
    _command_buffers.at(_current_frame)
        .set_viewport(vk::defaults::default_viewport(_swapchain->extent()));
    _command_buffers.at(_current_frame)
@@ -210,8 +214,11 @@ void Renderer::draw()
    else {
       _command_buffers.at(_current_frame).draw();
    }
+   _instance->debugger()->end_region(&_command_buffers.at(_current_frame));
+
    _command_buffers.at(_current_frame).end_renderpass();
    _command_buffers.at(_current_frame).end();
+
    VkSubmitInfo submit_info{};
    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -267,7 +274,6 @@ void Renderer::draw()
    }
 
    // need to be after present because sync?
-
    _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -365,7 +371,6 @@ void debug_matrix(const glm::mat4& matrix, const std::string& name)
    }
    meddl::log::debug("]");
 }
-
 void Renderer::update_uniform_buffer(uint32_t current_image)
 {
    static auto start_time = std::chrono::high_resolution_clock::now();
