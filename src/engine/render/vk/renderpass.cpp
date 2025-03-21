@@ -1,18 +1,29 @@
 #include "engine/render/vk/renderpass.h"
 
+#include <vulkan/vulkan_core.h>
+
 namespace meddl::render::vk {
 
-RenderPass::RenderPass(Device* device, const VkAttachmentDescription& color_attachment)
+RenderPass::RenderPass(Device* device,
+                       const VkAttachmentDescription& color_attachment,
+                       const VkAttachmentDescription& depth_attachment)
     : _device(device)
 {
    VkAttachmentReference color_attach_ref{};
    color_attach_ref.attachment = 0;
    color_attach_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+   VkAttachmentReference depth_attach_ref{};
+   depth_attach_ref.attachment = 1;
+   depth_attach_ref.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+
    VkSubpassDescription subpass{};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
    subpass.colorAttachmentCount = 1;
    subpass.pColorAttachments = &color_attach_ref;
+   // subpass.pDepthStencilAttachment = &depth_attach_ref;
+
+   // std::array<VkAttachmentDescription,2> attach{color_attachment, depth_attachment};
 
    VkRenderPassCreateInfo renderpass_info{};
    renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

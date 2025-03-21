@@ -66,6 +66,14 @@ GraphicsPipeline::GraphicsPipeline(
    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
    rasterizer.depthBiasEnable = VK_FALSE;
 
+   VkPipelineDepthStencilStateCreateInfo depth_stencil{};
+   depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+   depth_stencil.depthTestEnable = VK_TRUE;
+   depth_stencil.depthWriteEnable = VK_TRUE;
+   depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+   depth_stencil.depthBoundsTestEnable = VK_FALSE;
+   depth_stencil.stencilTestEnable = VK_FALSE;
+
    VkPipelineMultisampleStateCreateInfo multisampling{};
    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
    multisampling.sampleShadingEnable = VK_FALSE;
@@ -105,6 +113,7 @@ GraphicsPipeline::GraphicsPipeline(
    pipeline_info.pMultisampleState = &multisampling;
    pipeline_info.pColorBlendState = &color_blending;
    pipeline_info.pDynamicState = &dynamic_state;
+   pipeline_info.pDepthStencilState = &depth_stencil;
    pipeline_info.layout = *_layout;
    pipeline_info.renderPass = render_pass->vk();
    pipeline_info.subpass = 0;
