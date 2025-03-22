@@ -30,8 +30,7 @@ struct SwapchainDetails {
 class Swapchain {
   public:
    Swapchain() = delete;
-   Swapchain(PhysicalDevice* physical_device,
-             Device* device,
+   Swapchain(Device* device,
              Surface* surface,
              const RenderPass* renderpass,
              const SwapchainOptions& options,
@@ -53,8 +52,7 @@ class Swapchain {
       return _framebuffers;
    }
 
-   static std::unique_ptr<Swapchain> recreate(PhysicalDevice* physical_device,
-                                              Device* device,
+   static std::unique_ptr<Swapchain> recreate(Device* device,
                                               Surface* surface,
                                               const RenderPass* renderpass,
                                               const SwapchainOptions& options,

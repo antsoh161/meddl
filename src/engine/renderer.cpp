@@ -16,6 +16,8 @@
 #include "engine/render/vk/buffer.h"
 #include "engine/render/vk/defaults.h"
 #include "engine/render/vk/descriptor.h"
+#include "engine/render/vk/device.h"
+#include "engine/render/vk/instance.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -46,34 +48,46 @@ constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(window))
 {
    meddl::log::get_logger()->set_level(spdlog::level::debug);
-   constexpr auto app_info = vk::defaults::app_info();
    auto debug_config = vk::DebugConfiguration();
-   _instance = std::make_unique<vk::Instance>(app_info, debug_config);
+   auto instance_config = vk::InstanceConfiguration();
+   _instance = std::make_unique<vk::Instance>(instance_config, debug_config);
    // _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
    _surface = std::make_unique<render::vk::Surface>(
        render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()},
                                    _instance.get())
            .value());
 
-   std::optional<int> present_index{};
-   std::optional<int> graphics_index{};
+   // std::optional<int> present_index{};
+   // std::optional<int> graphics_index{};
+   //
+   // for (const auto& device : _instance->get_physical_devices()) {
+   //    present_index = device.get_present_family(_surface.get());
+   //    graphics_index = device.get_queue_family(VK_QUEUE_GRAPHICS_BIT);
+   // }
+   //
+   // auto extensions = vk::defaults::device_extensions();
 
-   for (const auto& device : _instance->get_physical_devices()) {
-      present_index = device->get_present_family(_surface.get());
-      graphics_index = device->get_queue_family(VK_QUEUE_GRAPHICS_BIT);
+   // auto config = vk::QueueConfiguration(present_index.value());
+   //
+   // auto device_config = vk::DeviceConfiguration();
+   // device_config.queue_configurations = {{graphics_index.value(), config}};
+
+   vk::DevicePicker picker(_instance.get(), _surface.get());
+   auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
+   if (picked.has_value()) {
+      meddl::log::debug("Valid device picked, queue conf count: {}",
+                        picked.value().config.queue_configurations.size());
+      for (const auto& qc : picked.value().config.queue_configurations) {
+         meddl::log::debug("queue index: {} -> (idx: {}, prio: {}, count: {})",
+                           qc.first,
+                           qc.second._queue_family_index,
+                           qc.second._priority,
+                           qc.second._priority);
+      }
    }
 
-   auto physical_device = _instance->get_physical_devices().front();
-   auto extensions = vk::defaults::device_extensions();
-
-   auto config = vk::QueueConfiguration(present_index.value());
-   std::unordered_map<uint32_t, vk::QueueConfiguration> configs = {
-       {graphics_index.value(), config}};
-   _device = std::make_unique<vk::Device>(physical_device.get(),
-                                          configs,
-                                          extensions,
-                                          std::nullopt,
-                                          _instance->debugger()->get_active_validation_layers());
+   _device = std::make_unique<vk::Device>(
+       picked.value().best_Device, picked.value().config, _instance->debugger());
 
    auto color_attachement = vk::defaults::color_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
    auto depth_attachement = vk::defaults::depth_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
@@ -81,12 +95,8 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
        std::make_unique<vk::RenderPass>(_device.get(), color_attachement, depth_attachement);
 
    vk::SwapchainOptions options{};
-   _swapchain = std::make_unique<vk::Swapchain>(_instance->get_physical_devices().front().get(),
-                                                _device.get(),
-                                                _surface.get(),
-                                                _renderpass.get(),
-                                                options,
-                                                _window->get_framebuffer_size());
+   _swapchain = std::make_unique<vk::Swapchain>(
+       _device.get(), _surface.get(), _renderpass.get(), options, _window->get_framebuffer_size());
 
    vk::ShaderCompiler compiler;
    _vert_spirv =
@@ -156,6 +166,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
       vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
    });
+   _instance->log_device_info(_surface.get());
 }
 
 void Renderer::draw()
@@ -170,8 +181,7 @@ void Renderer::draw()
                                              &image_index);
 
    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      _swapchain = vk::Swapchain::recreate(_instance->get_physical_devices().front().get(),
-                                           _device.get(),
+      _swapchain = vk::Swapchain::recreate(_device.get(),
                                            _surface.get(),
                                            _renderpass.get(),
                                            vk::SwapchainOptions{},
@@ -214,10 +224,10 @@ void Renderer::draw()
    else {
       _command_buffers.at(_current_frame).draw();
    }
-   _instance->debugger()->end_region(&_command_buffers.at(_current_frame));
 
    _command_buffers.at(_current_frame).end_renderpass();
    _command_buffers.at(_current_frame).end();
+   _instance->debugger()->end_region(&_command_buffers.at(_current_frame));
 
    VkSubmitInfo submit_info{};
    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -261,8 +271,8 @@ void Renderer::draw()
    if (result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR ||
        _window->is_resized()) {
       _window->reset_resized();
-      _swapchain = vk::Swapchain::recreate(_instance->get_physical_devices().front().get(),
-                                           _device.get(),
+
+      _swapchain = vk::Swapchain::recreate(_device.get(),
                                            _surface.get(),
                                            _renderpass.get(),
                                            vk::SwapchainOptions{},
@@ -371,6 +381,7 @@ void debug_matrix(const glm::mat4& matrix, const std::string& name)
    }
    meddl::log::debug("]");
 }
+
 void Renderer::update_uniform_buffer(uint32_t current_image)
 {
    static auto start_time = std::chrono::high_resolution_clock::now();
@@ -385,15 +396,12 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    engine::TransformUBO ubo{};
    ubo.model = glm::mat4(1.0f);
 
-   // Use a wider depth range for better visualization
    const auto aspect = static_cast<float>(_swapchain->extent().width) /
                        static_cast<float>(_swapchain->extent().height);
 
-   // Adjust near and far planes for better depth range
    ubo.projection = glm::perspective(glm::radians(45.0f), aspect, 0.01f, 100.0f);
    ubo.projection[1][1] *= -1;  // Flip for Vulkan coordinate system
 
-   // Use custom view matrix if provided, otherwise use default
    if (_camera_updated) {
       ubo.view = _view_matrix;
    }
@@ -403,7 +411,6 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    }
 
    frame_count++;
-   // Copy data to already mapped uniform buffer
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
 }
 

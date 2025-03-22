@@ -92,8 +92,6 @@ class Renderer {
 
    std::shared_ptr<glfw::Window> window() { return _window; };
 
-   void callback();
-
   private:
    void update_uniform_buffer(uint32_t current_image);
    // "core"
