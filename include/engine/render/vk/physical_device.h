@@ -45,6 +45,9 @@ class PhysicalDevice {
    [[nodiscard]] const std::optional<uint32_t> get_queue_family(VkQueueFlags flags) const;
    [[nodiscard]] const std::optional<uint32_t> get_present_family(Surface* surface) const;
    [[nodiscard]] const std::vector<VkQueueFamilyProperties>& get_queue_families() const;
+   [[nodiscard]] const std::vector<VkSurfaceFormatKHR> formats(Surface* surface) const;
+   [[nodiscard]] const std::vector<VkPresentModeKHR> present_modes(Surface* surface) const;
+   [[nodiscard]] const VkSurfaceCapabilitiesKHR capabilities(Surface* surface) const;
 
    [[nodiscard]] const VkPhysicalDeviceProperties& get_properties() const { return _properties; }
    [[nodiscard]] const VkPhysicalDeviceFeatures& get_features() const { return _features; };

@@ -1,5 +1,7 @@
 #include "engine/render/vk/physical_device.h"
 
+#include <vulkan/vulkan_core.h>
+
 #include <algorithm>
 #include <limits>
 #include <ratio>
@@ -85,6 +87,78 @@ VkPhysicalDeviceMemoryProperties PhysicalDevice::get_memory_properties() const
    vkGetPhysicalDeviceMemoryProperties(_device, &props);
    return props;
 }
+
+const std::vector<VkSurfaceFormatKHR> PhysicalDevice::formats(Surface* surface) const
+{
+   uint32_t format_count{};
+   vkGetPhysicalDeviceSurfaceFormatsKHR(_device, surface->vk(), &format_count, nullptr);
+
+   std::vector<VkSurfaceFormatKHR> formats{};
+   if (format_count > 0) {
+      formats.resize(format_count);
+      vkGetPhysicalDeviceSurfaceFormatsKHR(_device, surface->vk(), &format_count, formats.data());
+   }
+   return formats;
+}
+
+const std::vector<VkPresentModeKHR> PhysicalDevice::present_modes(Surface* surface) const
+{
+   uint32_t present_modes_count{};
+   vkGetPhysicalDeviceSurfacePresentModesKHR(_device, surface->vk(), &present_modes_count, nullptr);
+
+   std::vector<VkPresentModeKHR> present_modes{};
+   if (present_modes_count > 0) {
+      present_modes.resize(present_modes_count);
+      vkGetPhysicalDeviceSurfacePresentModesKHR(
+          _device, surface->vk(), &present_modes_count, present_modes.data());
+   }
+   return present_modes;
+}
+
+const VkSurfaceCapabilitiesKHR PhysicalDevice::capabilities(Surface* surface) const
+{
+   VkSurfaceCapabilitiesKHR caps;
+   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_device, surface->vk(), &caps);
+   return caps;
+}
+
+// SwapchainDetails get_details(const PhysicalDevice* device, Surface* surface)
+// {
+//    SwapchainDetails details;
+//    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->vk(), surface->vk(),
+//    &details._capabilities);
+//
+//    uint32_t format_count{};
+//    vkGetPhysicalDeviceSurfaceFormatsKHR(device->vk(), surface->vk(), &format_count, nullptr);
+//
+//    std::vector<VkSurfaceFormatKHR> formats{};
+//    if (format_count > 0) {
+//       formats.resize(format_count);
+//       vkGetPhysicalDeviceSurfaceFormatsKHR(
+//           device->vk(), surface->vk(), &format_count, formats.data());
+//
+//       for (const auto& format : formats) {
+//          details._formats.insert(format);
+//       }
+//    }
+//
+//    uint32_t present_modes_count{};
+//    vkGetPhysicalDeviceSurfacePresentModesKHR(
+//        device->vk(), surface->vk(), &present_modes_count, nullptr);
+//
+//    std::vector<VkPresentModeKHR> present_modes{};
+//    if (present_modes_count > 0) {
+//       present_modes.resize(present_modes_count);
+//       vkGetPhysicalDeviceSurfacePresentModesKHR(
+//           device->vk(), surface->vk(), &present_modes_count, present_modes.data());
+//
+//       for (const auto& present_mode : present_modes) {
+//          details._present_modes.insert(present_mode);
+//       }
+//    }
+//    return details;
+// }
+
 std::vector<VkExtensionProperties> PhysicalDevice::get_supported_extensions() const
 {
    uint32_t extension_count = 0;
@@ -274,13 +348,12 @@ int32_t PhysicalDevice::score_device(const PhysicalDeviceRequirements& requireme
       }
    }
 
-   // First add base score if meeting minimum requirement
    if (total_device_local_memory >= requirements.minimum_memory_size) {
       score += memory_base_score;
 
       if (requirements.minimum_memory_size > 0) {
-         // Calculate ratio of available memory to required memory
-         // A device with 2x the minimum memory gets double the bonus points
+         // calculate ratio of available memory to required memory
+         // c device with 2x the minimum memory gets double the bonus points
          float memory_ratio = static_cast<float>(total_device_local_memory) /
                               static_cast<float>(requirements.minimum_memory_size);
          score += static_cast<int32_t>(memory_base_score * (memory_ratio - 1.0f));
@@ -297,9 +370,8 @@ int32_t PhysicalDevice::score_device(const PhysicalDeviceRequirements& requireme
    score += _features.tessellationShader ? tesselation_score : 0;
    score += _features.samplerAnisotropy ? sampler_score : 0;
 
-   constexpr uint32_t nvidia_id = 0x10DE;
-
    // If I understand this correctly, its NVIDIA only
+   // constexpr uint32_t nvidia_id = 0x10DE;
    // But newer drivers = higher score
    // if (_properties.vendorID == nvidia_id) {
    //  uint32_t major = (_properties.driverVersion >> 22) & 0x3ff;
