@@ -130,7 +130,10 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::begin_renderpass(
    if (_state != State::Recording) {
       return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
    }
-   VkClearValue clear_values = {{{0.2f, 0.2f, 0.2f, 1.0f}}};
+   std::array<VkClearValue, 2> clear_values = {
+       VkClearValue{.color = {{0.2f, 0.2f, 0.2f, 1.0f}}},  // Color clear value (RGBA)
+       VkClearValue{.depthStencil = {1.0f, 0}}  // Depth clear value (depth=1.0, stencil=0)
+   };
 
    VkRenderPassBeginInfo begin_info{};
    begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -138,8 +141,8 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::begin_renderpass(
    begin_info.framebuffer = framebuffer;
    begin_info.renderArea.offset = {.x = 0, .y = 0};
    begin_info.renderArea.extent = swapchain->extent();
-   begin_info.clearValueCount = 1;
-   begin_info.pClearValues = &clear_values;
+   begin_info.clearValueCount = clear_values.size();
+   begin_info.pClearValues = clear_values.data();
 
    // TODO: error?
    vkCmdBeginRenderPass(_command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);

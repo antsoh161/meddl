@@ -2,14 +2,14 @@
 
 #include "GLFW/glfw3.h"
 #include "engine/render/vk/device.h"
+#include "engine/render/vk/shared.h"
 
 namespace meddl::render::vk {
 
 class RenderPass {
   public:
-   RenderPass(Device* device,
-              const VkAttachmentDescription& color_attachment,
-              const VkAttachmentDescription& depth_attachment);
+   RenderPass(Device* device, const GraphicsConfiguration& config);
+
    ~RenderPass();
 
    RenderPass(const RenderPass&) = delete;

@@ -14,10 +14,13 @@
 #include "core/log.h"
 #include "engine/gpu_types.h"
 #include "engine/render/vk/buffer.h"
+#include "engine/render/vk/config.h"
 #include "engine/render/vk/defaults.h"
 #include "engine/render/vk/descriptor.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/instance.h"
+#include "engine/render/vk/renderpass.h"
+#include "engine/render/vk/shared.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -57,47 +60,26 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                    _instance.get())
            .value());
 
-   // std::optional<int> present_index{};
-   // std::optional<int> graphics_index{};
-   //
-   // for (const auto& device : _instance->get_physical_devices()) {
-   //    present_index = device.get_present_family(_surface.get());
-   //    graphics_index = device.get_queue_family(VK_QUEUE_GRAPHICS_BIT);
-   // }
-   //
-   // auto extensions = vk::defaults::device_extensions();
-
-   // auto config = vk::QueueConfiguration(present_index.value());
-   //
-   // auto device_config = vk::DeviceConfiguration();
-   // device_config.queue_configurations = {{graphics_index.value(), config}};
-
    vk::DevicePicker picker(_instance.get(), _surface.get());
    auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
-   if (picked.has_value()) {
-      meddl::log::debug("Valid device picked, queue conf count: {}",
-                        picked.value().config.queue_configurations.size());
-      for (const auto& qc : picked.value().config.queue_configurations) {
-         meddl::log::debug("queue index: {} -> (idx: {}, prio: {}, count: {})",
-                           qc.first,
-                           qc.second._queue_family_index,
-                           qc.second._priority,
-                           qc.second._priority);
-      }
-   }
 
    _device = std::make_unique<vk::Device>(
        picked.value().best_Device, picked.value().config, _instance->debugger());
 
-   auto color_attachement = vk::defaults::color_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
-   auto depth_attachement = vk::defaults::depth_attachment(vk::defaults::DEFAULT_IMAGE_FORMAT);
-   _renderpass =
-       std::make_unique<vk::RenderPass>(_device.get(), color_attachement, depth_attachement);
+   auto graphics_conf = vk::presets::forward_rendering();
+   auto validator = vk::ConfigValidator(_device->physical_device(), _surface.get());
 
-   vk::SwapchainOptions options{};
-   _swapchain = std::make_unique<vk::Swapchain>(
-       _device.get(), _surface.get(), _renderpass.get(), options, _window->get_framebuffer_size());
+   validator.validate_surface_format(graphics_conf);
+   validator.validate_renderpass(graphics_conf);
 
+   _renderpass = std::make_unique<vk::RenderPass>(_device.get(), graphics_conf);
+
+   _swapchain = std::make_unique<vk::Swapchain>(_device.get(),
+                                                _surface.get(),
+                                                _renderpass.get(),
+                                                graphics_conf,
+                                                _window->get_framebuffer_size());
+   //
    vk::ShaderCompiler compiler;
    _vert_spirv =
        compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
@@ -127,7 +109,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                                                _renderpass.get(),
                                                                bdesc,
                                                                vattr);
-
+   //
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
    _command_pool = std::make_unique<vk::CommandPool>(
        _device.get(), 0, vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
@@ -184,7 +166,6 @@ void Renderer::draw()
       _swapchain = vk::Swapchain::recreate(_device.get(),
                                            _surface.get(),
                                            _renderpass.get(),
-                                           vk::SwapchainOptions{},
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
       return;
@@ -275,7 +256,6 @@ void Renderer::draw()
       _swapchain = vk::Swapchain::recreate(_device.get(),
                                            _surface.get(),
                                            _renderpass.get(),
-                                           vk::SwapchainOptions{},
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
    }
