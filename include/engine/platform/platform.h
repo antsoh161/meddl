@@ -9,23 +9,29 @@ struct platform_error {
    int code;
 };
 
-namespace glfw {
-class Window;
-}
-namespace webgpu {
-class Canvas;
-}
-
-template <typename T>
-concept window_provider = requires(T t, int32_t width, int32_t height, std::string_view title) {
-   {
-      t.create_window(width, height, title)
-   } -> std::same_as<std::expected<typename T::window_type, platform_error>>;
-   { t.destroy_window(std::declval<typename T::window_type>()) } -> std::same_as<void>;
-   { t.poll_events() } -> std::same_as<bool>;
+struct glfw_window_handle {
+   void* glfw;
 };
-
-struct desktop_platform {};
-struct web_platform {};
+struct win32_window_handle {
+   void* hwnd;
+   void* hinstance;
+};
+struct x11_window_handle {
+   void* display;
+   unsigned long window;
+};
+struct wayland_window_handle {
+   void* display;
+   void* surface;
+};
+struct metal_window_handle {
+   void* nsview;
+};
+struct android_window_handle {
+   void* window;
+};
+struct web_canvas_handle {
+   const char* canvas_id;
+};
 
 }  // namespace meddl::platform
