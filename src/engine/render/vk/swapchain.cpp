@@ -10,18 +10,19 @@ namespace meddl::render::vk {
 
 //! Helper functions
 namespace {
-SwapchainDetails get_details(PhysicalDevice* device, Surface* surface)
+SwapchainDetails get_details(const PhysicalDevice* device, Surface* surface)
 {
    SwapchainDetails details;
-   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*device, surface->vk(), &details._capabilities);
+   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->vk(), surface->vk(), &details._capabilities);
 
    uint32_t format_count{};
-   vkGetPhysicalDeviceSurfaceFormatsKHR(*device, surface->vk(), &format_count, nullptr);
+   vkGetPhysicalDeviceSurfaceFormatsKHR(device->vk(), surface->vk(), &format_count, nullptr);
 
    std::vector<VkSurfaceFormatKHR> formats{};
    if (format_count > 0) {
       formats.resize(format_count);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(*device, surface->vk(), &format_count, formats.data());
+      vkGetPhysicalDeviceSurfaceFormatsKHR(
+          device->vk(), surface->vk(), &format_count, formats.data());
 
       for (const auto& format : formats) {
          details._formats.insert(format);
@@ -29,13 +30,14 @@ SwapchainDetails get_details(PhysicalDevice* device, Surface* surface)
    }
 
    uint32_t present_modes_count{};
-   vkGetPhysicalDeviceSurfacePresentModesKHR(*device, surface->vk(), &present_modes_count, nullptr);
+   vkGetPhysicalDeviceSurfacePresentModesKHR(
+       device->vk(), surface->vk(), &present_modes_count, nullptr);
 
    std::vector<VkPresentModeKHR> present_modes{};
    if (present_modes_count > 0) {
       present_modes.resize(present_modes_count);
       vkGetPhysicalDeviceSurfacePresentModesKHR(
-          *device, surface->vk(), &present_modes_count, present_modes.data());
+          device->vk(), surface->vk(), &present_modes_count, present_modes.data());
 
       for (const auto& present_mode : present_modes) {
          details._present_modes.insert(present_mode);
@@ -46,15 +48,14 @@ SwapchainDetails get_details(PhysicalDevice* device, Surface* surface)
 };  // namespace
 
 //! New
-Swapchain::Swapchain(PhysicalDevice* physical_device,
-                     Device* device,
+Swapchain::Swapchain(Device* device,
                      Surface* surface,
                      const RenderPass* renderpass,
                      const SwapchainOptions& options,
                      const glfw::FrameBufferSize& fbs)
     : _device(device), _surface(surface)
 {
-   _details = get_details(physical_device, surface);
+   _details = get_details(device->physical_device(), surface);
 
    uint32_t min_image_count = std::max(options._image_count, _details._capabilities.minImageCount);
    // 0 means unlimited, so keep above if that's the case
@@ -93,7 +94,7 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
    create_info.imageArrayLayers = options._image_array_layers;
    create_info.imageUsage = options._image_usage_flags;
 
-   auto queue_families = physical_device->get_queue_families();
+   const auto queue_families = device->physical_device()->get_queue_families();
    if (queue_families.size() > 1 && false) {
       // TODO: logger debug
       std::println("Swapchain CONCURRENT mode because size: {}", queue_families.size());
@@ -132,9 +133,9 @@ Swapchain::Swapchain(PhysicalDevice* physical_device,
    std::println("Swapchain create with image count: {}", create_info.minImageCount);
 
    uint32_t image_count{};
-   vkGetSwapchainImagesKHR(*_device, _swapchain, &image_count, nullptr);
+   vkGetSwapchainImagesKHR(_device->vk(), _swapchain, &image_count, nullptr);
    _images.resize(image_count);
-   vkGetSwapchainImagesKHR(*_device, _swapchain, &image_count, _images.data());
+   vkGetSwapchainImagesKHR(_device->vk(), _swapchain, &image_count, _images.data());
    _image_views.resize(_images.size());
 
    VkImageViewCreateInfo image_view_info{};
@@ -190,8 +191,7 @@ Swapchain::~Swapchain()
    }
 }
 
-std::unique_ptr<Swapchain> Swapchain::recreate(PhysicalDevice* physical_device,
-                                               Device* device,
+std::unique_ptr<Swapchain> Swapchain::recreate(Device* device,
                                                Surface* surface,
                                                const RenderPass* renderpass,
                                                const SwapchainOptions& options,
@@ -203,7 +203,7 @@ std::unique_ptr<Swapchain> Swapchain::recreate(PhysicalDevice* physical_device,
    if (old_swapchain) {
       old_swapchain.reset();
    }
-   return std::make_unique<Swapchain>(physical_device, device, surface, renderpass, options, fbs);
+   return std::make_unique<Swapchain>(device, surface, renderpass, options, fbs);
 }
 
 std::vector<VkImageView>& Swapchain::get_image_views()

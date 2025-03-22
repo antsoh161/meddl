@@ -127,9 +127,6 @@ void Debugger::end_region(Queue* queue)
 
 void Debugger::end_region(CommandBuffer* buffer)
 {
-   if (!vkCmdEndDebugUtilsLabelEXT) {
-      meddl::log::warn("debug marker end called with no begin function pointer set");
-   }
    if (!_config.enable_debug_markers || !vkCmdEndDebugUtilsLabelEXT) {
       return;
    }
