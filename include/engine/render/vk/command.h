@@ -62,7 +62,7 @@ class CommandBuffer {
    std::expected<void, meddl::error::VulkanError> end();
    std::expected<void, meddl::error::VulkanError> reset(VkCommandBufferResetFlags flags = 0);
 
-   [[nodiscard]] const State state() const { return _state; }
+   [[nodiscard]] State state() const { return _state; }
 
    //! Renderpass
    std::expected<void, meddl::error::VulkanError> begin_renderpass(const RenderPass* renderpass,

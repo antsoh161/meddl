@@ -51,7 +51,7 @@ std::expected<Surface, surface_error> Surface::create<meddl::platform::glfw_wind
       });
    }
 
-   VkSurfaceKHR surface;
+   VkSurfaceKHR surface{nullptr};
    auto res = glfwCreateWindowSurface(instance->vk(), window.native(), nullptr, &surface);
    if (res != VK_SUCCESS) {
       return std::unexpected(surface_error{
