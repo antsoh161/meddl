@@ -383,7 +383,6 @@ std::optional<DevicePickerResult> DevicePicker::pick_custom(PhysicalDeviceRequir
    if (!strict_requirements_met && allow_best_effort) {
       meddl::log::warn("No device strictly meets all requirements, trying best-effort selection");
 
-      // Create relaxed requirements (e.g., drop some features, keep mandatory queues)
       PhysicalDeviceRequirements relaxed_reqs = reqs;
       relaxed_reqs.required_features = std::nullopt;  // Drop feature requirements
 
