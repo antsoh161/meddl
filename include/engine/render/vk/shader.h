@@ -26,29 +26,4 @@ class ShaderModule {
    VkShaderModule _shader_module{};
 };
 
-class ShaderCompiler {
-  public:
-   ShaderCompiler() = default;
-
-   [[nodiscard]] shaderc::CompileOptions& options() { return _options; }
-
-   std::vector<uint32_t> compile(const std::filesystem::path& path,
-                                 const shaderc_shader_kind& kind);
-
-  private:
-   shaderc::Compiler _compiler{};
-   shaderc::CompileOptions _options{};
-};
-
-class ShaderProgram {
-  public:
-   ShaderProgram() = default;
-   void load_vertex(const std::filesystem::path& path);
-   bool load_fragment(const std::filesystem::path& path);
-
-  private:
-   // SPIRV's
-   std::vector<uint32_t> _vertex{};
-   std::vector<uint32_t> _fragment{};
-};
 }  // namespace meddl::render::vk
