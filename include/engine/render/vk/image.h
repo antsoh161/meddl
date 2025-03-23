@@ -8,6 +8,9 @@
 #include "engine/render/vk/shared.h"
 namespace meddl::render::vk {
 
+class CommandBuffer;
+class CommandPool;
+class Buffer;
 class Image {
   public:
    ~Image();
@@ -21,6 +24,7 @@ class Image {
                        const GraphicsConfiguration::AttachmentConfig& config,
                        uint32_t width,
                        uint32_t height);
+
    //! This image does not own the handle or the memory
    static Image create_deferred(VkImage image,
                                 Device* device,
@@ -31,11 +35,9 @@ class Image {
    [[nodiscard]] VkDeviceMemory memory() const { return _memory; }
    [[nodiscard]] bool is_owner() const { return _owned_resources.has_value(); }
 
-   void transition(VkCommandBuffer cmd_buffer,
-                   VkImageLayout old_layout,
-                   VkImageLayout new_layout,
-                   VkPipelineStageFlags src_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                   VkPipelineStageFlags dst_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+   void transition(CommandPool* pool, VkImageLayout old_layout, VkImageLayout new_layout);
+
+   void copy_from_buffer(Buffer* buffer, CommandPool* pool);
 
   private:
    Image(Device* device, const GraphicsConfiguration::AttachmentConfig& config);
@@ -51,6 +53,7 @@ class Image {
    VkImageView _image_view{VK_NULL_HANDLE};
    VkImageLayout _current_layout{VK_IMAGE_LAYOUT_UNDEFINED};
    VkDeviceMemory _memory{VK_NULL_HANDLE};
+   VkExtent3D _extent;
    std::optional<Owned> _owned_resources{std::nullopt};
 };
 }  // namespace meddl::render::vk
