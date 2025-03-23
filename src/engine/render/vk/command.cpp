@@ -1,6 +1,9 @@
 #include "engine/render/vk/command.h"
 
+#include <vulkan/vulkan_core.h>
+
 #include <exception>
+#include <expected>
 
 namespace meddl::render::vk {
 
@@ -82,10 +85,38 @@ CommandBuffer::~CommandBuffer()
    }
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::begin(VkCommandBufferUsageFlags flags)
+CommandBuffer CommandBuffer::begin_one_time_submit(Device* device, CommandPool* pool)
+{
+   CommandBuffer cmd_buffer(device, pool);
+
+   VkCommandBufferBeginInfo beginInfo{};
+   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+   vkBeginCommandBuffer(cmd_buffer._command_buffer, &beginInfo);
+
+   return cmd_buffer;
+}
+
+void CommandBuffer::end_one_time_submit(Device* device, CommandBuffer* cmd_buffer)
+{
+   vkEndCommandBuffer(cmd_buffer->vk());
+
+   VkSubmitInfo submitInfo{};
+   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+   submitInfo.commandBufferCount = 1;
+   submitInfo.pCommandBuffers = &cmd_buffer->_command_buffer;
+
+   // Use the first queue for now - could make this configurable
+   vkQueueSubmit(device->queues().at(0).vk(), 1, &submitInfo, VK_NULL_HANDLE);
+   vkQueueWaitIdle(device->queues().at(0).vk());
+}
+
+std::expected<void, CommandError> CommandBuffer::begin(VkCommandBufferUsageFlags flags)
 {
    if (_state != State::Ready) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotReady);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotReady,
+                                                     "Commandbuffer state is not ready"));
    }
    VkCommandBufferBeginInfo begin_info{};
    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -100,35 +131,41 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::begin(VkCommandBuf
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::end()
+std::expected<void, CommandError> CommandBuffer::end()
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
-   if (vkEndCommandBuffer(_command_buffer) != VK_SUCCESS) {
-      throw std::runtime_error("failed to record command buffer");
+   auto res = vkEndCommandBuffer(_command_buffer);
+   if (res != VK_SUCCESS) {
+      return std::unexpected(CommandError::from_result(res, "Commandbuffer end"));
    }
    _state = State::Executable;
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::reset(VkCommandBufferResetFlags flags)
+std::expected<void, CommandError> CommandBuffer::reset(VkCommandBufferResetFlags flags)
 {
    if (_state != State::Executable) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotExecutable);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotExecutable,
+                                                     "Commandbuffer state is not executable"));
    }
-   if (vkResetCommandBuffer(_command_buffer, flags) != VK_SUCCESS) {
-      throw std::runtime_error("failed to reset command buffer");
+   auto res = vkResetCommandBuffer(_command_buffer, flags);
+   if (res != VK_SUCCESS) {
+      return std::unexpected(CommandError::from_result(res, "Commandbuffer reset"));
    }
    _state = State::Ready;
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::begin_renderpass(
-    const RenderPass* renderpass, const Swapchain* swapchain, VkFramebuffer framebuffer)
+std::expected<void, CommandError> CommandBuffer::begin_renderpass(const RenderPass* renderpass,
+                                                                  const Swapchain* swapchain,
+                                                                  VkFramebuffer framebuffer)
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    std::array<VkClearValue, 2> clear_values = {
        VkClearValue{.color = {{0.2f, 0.2f, 0.2f, 1.0f}}},  // Color clear value (RGBA)
@@ -149,51 +186,54 @@ std::expected<void, meddl::error::VulkanError> CommandBuffer::begin_renderpass(
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::bind_pipeline(
-    const GraphicsPipeline* pipeline)
+std::expected<void, CommandError> CommandBuffer::bind_pipeline(const GraphicsPipeline* pipeline)
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    // TODO: error?
    vkCmdBindPipeline(_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->vk());
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::set_viewport(
-    const VkViewport& viewport)
+std::expected<void, CommandError> CommandBuffer::set_viewport(const VkViewport& viewport)
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    // TODO: error?
    vkCmdSetViewport(_command_buffer, 0, 1, &viewport);
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::set_scissor(const VkRect2D& scissor)
+std::expected<void, CommandError> CommandBuffer::set_scissor(const VkRect2D& scissor)
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    // TODO: error?
    vkCmdSetScissor(_command_buffer, 0, 1, &scissor);
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::draw()
+std::expected<void, CommandError> CommandBuffer::draw()
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    vkCmdDraw(_command_buffer, 3, 1, 0, 0);
    return {};
 }
 
-std::expected<void, meddl::error::VulkanError> CommandBuffer::end_renderpass()
+std::expected<void, CommandError> CommandBuffer::end_renderpass()
 {
    if (_state != State::Recording) {
-      return std::unexpected(meddl::error::VulkanError::CommandBufferNotRecording);
+      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
+                                                     "Commandbuffer state is not recording"));
    }
    // TODO: error?
    vkCmdEndRenderPass(_command_buffer);
