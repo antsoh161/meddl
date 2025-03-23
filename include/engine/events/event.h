@@ -51,7 +51,7 @@ struct EventKey {
    EventType type{EventType::None};
    size_t specific{WILDCARD_HASH};
 
-   constexpr bool operator==(const EventKey& other) const
+   bool operator==(const EventKey& other) const
    {
       return type == other.type && specific == other.specific;
    }
@@ -75,8 +75,8 @@ struct EventTraits {
 };
 
 struct WindowClose {
-   static constexpr EventType type = EventType::WindowClose;
-   static constexpr EventCategory category = EventCategory::Window;
+   static const EventType type = EventType::WindowClose;
+   static const EventCategory category = EventCategory::Window;
 };
 
 struct WindowResize {
@@ -87,8 +87,8 @@ struct WindowResize {
 };
 
 struct KeyPressed {
-   static constexpr EventType type = EventType::KeyPressed;
-   static constexpr EventCategory category =
+   static const EventType type = EventType::KeyPressed;
+   static const EventCategory category =
        static_cast<EventCategory>(static_cast<uint32_t>(EventCategory::Input) |
                                   static_cast<uint32_t>(EventCategory::Keyboard));
    Key keycode{Key::Unknown};
@@ -110,8 +110,8 @@ struct EventTraits<KeyPressed> {
 };
 
 struct KeyReleased {
-   static constexpr EventType type = EventType::KeyReleased;
-   static constexpr EventCategory category =
+   static const EventType type = EventType::KeyReleased;
+   static const EventCategory category =
        static_cast<EventCategory>(static_cast<uint32_t>(EventCategory::Input) |
                                   static_cast<uint32_t>(EventCategory::Keyboard));
    Key keycode;
@@ -129,8 +129,8 @@ struct EventTraits<KeyReleased> {
 };
 
 struct KeyTyped {
-   static constexpr EventType type = EventType::KeyTyped;
-   static constexpr EventCategory category =
+   static const EventType type = EventType::KeyTyped;
+   static const EventCategory category =
        static_cast<EventCategory>(static_cast<uint32_t>(EventCategory::Input) |
                                   static_cast<uint32_t>(EventCategory::Keyboard));
    Key keycode;
@@ -148,8 +148,8 @@ struct EventTraits<KeyTyped> {
 };
 
 struct MouseMoved {
-   static constexpr EventType type = EventType::MouseMoved;
-   static constexpr EventCategory category = static_cast<EventCategory>(
+   static const EventType type = EventType::MouseMoved;
+   static const EventCategory category = static_cast<EventCategory>(
        static_cast<uint32_t>(EventCategory::Input) | static_cast<uint32_t>(EventCategory::Mouse));
    float x;
    float y;
@@ -164,8 +164,8 @@ struct EventTraits<MouseMoved> {
 };
 
 struct MouseScrolled {
-   static constexpr EventType type = EventType::MouseScrolled;
-   static constexpr EventCategory category = static_cast<EventCategory>(
+   static const EventType type = EventType::MouseScrolled;
+   static const EventCategory category = static_cast<EventCategory>(
        static_cast<uint32_t>(EventCategory::Input) | static_cast<uint32_t>(EventCategory::Mouse));
    float x_offset;
    float y_offset;
@@ -180,8 +180,8 @@ struct EventTraits<MouseScrolled> {
 };
 
 struct MouseButtonPressed {
-   static constexpr EventType type = EventType::MouseButtonPressed;
-   static constexpr EventCategory category = static_cast<EventCategory>(
+   static const EventType type = EventType::MouseButtonPressed;
+   static const EventCategory category = static_cast<EventCategory>(
        static_cast<uint32_t>(EventCategory::Input) | static_cast<uint32_t>(EventCategory::Mouse) |
        static_cast<uint32_t>(EventCategory::MouseButton));
    MouseButton button;
@@ -199,8 +199,8 @@ struct EventTraits<MouseButtonPressed> {
 };
 
 struct MouseButtonReleased {
-   static constexpr EventType type = EventType::MouseButtonReleased;
-   static constexpr EventCategory category = static_cast<EventCategory>(
+   static const EventType type = EventType::MouseButtonReleased;
+   static const EventCategory category = static_cast<EventCategory>(
        static_cast<uint32_t>(EventCategory::Input) | static_cast<uint32_t>(EventCategory::Mouse) |
        static_cast<uint32_t>(EventCategory::MouseButton));
    MouseButton button;
@@ -209,7 +209,7 @@ struct MouseButtonReleased {
 
 template <>
 struct EventTraits<MouseButtonReleased> {
-   static constexpr EventKey make_key(const MouseButtonReleased& event)
+   static const EventKey make_key(const MouseButtonReleased& event)
    {
       size_t hash = std::hash<int32_t>{}(static_cast<int32_t>(event.button));
       hash ^= std::hash<int32_t>{}(static_cast<int32_t>(event.modifiers)) << 1;
@@ -229,9 +229,9 @@ class Event {
    {
    }
 
-   [[nodiscard]] constexpr EventType type() const { return _type; }
-   [[nodiscard]] constexpr EventCategory category() const { return _category; }
-   [[nodiscard]] constexpr EventKey key() const { return _key; }
+   [[nodiscard]] const EventType type() const { return _type; }
+   [[nodiscard]] const EventCategory category() const { return _category; }
+   [[nodiscard]] const EventKey key() const { return _key; }
 
    [[nodiscard]] bool is_of(EventCategory category) const
    {

@@ -2,7 +2,6 @@
 #include <expected>
 
 #include "core/error.h"
-#include "engine/render/vk/defaults.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/pipeline.h"
 #include "engine/render/vk/renderpass.h"
@@ -83,7 +82,7 @@ class CommandPool {
 
 struct CommandBufferOptions {
    VkCommandBufferLevel level{VK_COMMAND_BUFFER_LEVEL_PRIMARY};
-   uint32_t buffer_count{defaults::DEFAULT_COMMAND_BUFFER_COUNT};
+   uint32_t buffer_count{1};
 };
 
 //! CommandBuffer
@@ -110,7 +109,7 @@ class CommandBuffer {
 
    //! The commands
    std::expected<void, CommandError> begin(
-       VkCommandBufferUsageFlags flags = defaults::DEFAULT_BUFFER_USAGE_FLAGS);
+       VkCommandBufferUsageFlags flags = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
    std::expected<void, CommandError> end();
    std::expected<void, CommandError> reset(VkCommandBufferResetFlags flags = 0);
 

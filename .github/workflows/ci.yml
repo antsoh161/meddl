@@ -1,24 +1,26 @@
 name: build and test
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
+    types: [ready_for_review]
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install pre-commit
-      run: pip install pre-commit
-    - name: Run pre-commit
-      run: pre-commit run -a
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Run pre-commit
+        run: pre-commit run -a
   build:
     needs: pre-commit
     runs-on: ${{ matrix.os }}
@@ -37,17 +39,49 @@ jobs:
         build_type: [Release-ci]
         #compilers: [ {c: gcc, cpp: g++}, {c: clang, cpp: clang++}, {c: cl, cpp: cl}]
         compilers:
-        - {c: gcc, cpp: g++}
-        - {c: clang-19, cpp: clang++-19}
+          - { c: gcc, cpp: g++ }
+          - { c: clang-19, cpp: clang++-19 }
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: cmake
-      run: cmake -DCMAKE_C_COMPILER=${{ matrix.compilers.c }} -DCMAKE_CXX_COMPILER=${{ matrix.compilers.cpp }} --preset ${{ matrix.build_type }}
+      - name: cmake
+        run: cmake -DCMAKE_C_COMPILER=${{ matrix.compilers.c }} -DCMAKE_CXX_COMPILER=${{ matrix.compilers.cpp }} --preset ${{ matrix.build_type }}
 
-    - name: cmake build
-      run: cmake --build --preset ${{ matrix.build_type }}
+      - name: cmake build
+        run: cmake --build --preset ${{ matrix.build_type }}
 
-    - name: ctest
-      run: ctest --test-dir build/${{ matrix.build_type }} --output-on-failure
+      - name: ctest
+        run: ctest --test-dir build/${{ matrix.build_type }} --output-on-failure
+
+  windows_msvc:
+    needs: pre-commit
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Install vulkan
+        uses: jakoch/install-vulkan-sdk-action@v1.2.0
+        with:
+          vulkan_version: 1.4.309.0
+          install_runtime: true
+          cache: true
+          stripdown: true
+
+
+      - name: Build Project
+        env:
+          VULKAN_SDK: "C:\\VulkanSDK\\1.4.309.0"
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --version
+          ninja --version
+          cmake -B Build -GNinja -DCMAKE_BUILD_TYPE=Release
+          cmake --build Build

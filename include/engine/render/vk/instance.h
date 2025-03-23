@@ -5,11 +5,11 @@
 #include <expected>
 #include <memory>
 #include <optional>
+#include <span>
 
 #include "GLFW/glfw3.h"
 #include "core/error.h"
 #include "engine/render/vk/debug.h"
-#include "engine/render/vk/defaults.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/physical_device.h"
 
