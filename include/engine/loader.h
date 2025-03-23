@@ -92,18 +92,18 @@ struct ShaderData {
 };
 
 namespace loader {
-    // Image loading functions
-    ImageData load_image(const std::filesystem::path& path);
-    ImageData load_image_from_memory(std::span<const uint8_t> data);
-    
-    // Model loading functions
-    ModelData load_model(const std::filesystem::path& path);
-    ModelData load_gltf(const std::filesystem::path& path);
-    ModelData load_obj(const std::filesystem::path& path);
-    
-    // Shader loading functions
-    ShaderData load_shader(const std::filesystem::path& path);
-    ShaderData compile_glsl_to_spirv(const std::string& source, const std::string& shader_type);
-}
+// Image loading functions
+ImageData load_image(const std::filesystem::path& path);
+ImageData load_image_from_memory(std::span<const uint8_t> data);
+
+// Model loading functions
+ModelData load_model(const std::filesystem::path& path);
+ModelData load_gltf(const std::filesystem::path& path);
+ModelData load_obj(const std::filesystem::path& path);
+
+// Shader loading functions
+ShaderData load_shader(const std::filesystem::path& path);
+ShaderData compile_glsl_to_spirv(const std::string& source, const std::string& shader_type);
+}  // namespace loader
 
 }  // namespace meddl::engine

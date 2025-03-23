@@ -57,4 +57,21 @@ constexpr size_t roughness_offset = offsetof(MaterialUBO, roughness);
 constexpr size_t ao_offset = offsetof(MaterialUBO, ao);
 }  // namespace material_layout
 
+struct Mesh {
+   uint32_t index_count;
+   uint32_t index_offset;
+   uint32_t vertex_count;
+   uint32_t vertex_offset;
+   uint32_t material_index;
+};
+
+namespace mesh_layout {
+constexpr size_t index_count_offset = offsetof(Mesh, index_count);
+constexpr size_t index_offset_offset = offsetof(Mesh, index_offset);
+constexpr size_t vertex_count_offset = offsetof(Mesh, vertex_count);
+constexpr size_t vertex_offset_offset = offsetof(Mesh, vertex_offset);
+constexpr size_t material_index_offset = offsetof(Mesh, material_index);
+constexpr size_t stride = sizeof(Mesh);
+}  // namespace mesh_layout
+
 }  // namespace meddl::engine
