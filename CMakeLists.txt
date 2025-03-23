@@ -52,8 +52,9 @@ target_sources(Meddl PUBLIC
 
 target_link_libraries(Meddl PUBLIC
                               glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread
-                           spdlog::spdlog)
-target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN)
+                           spdlog::spdlog tinygltf)
+
+target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN MEDDL_USE_SHADERC)
 target_compile_options(
   Meddl
   PRIVATE $<$<CONFIG:Release>:-O2>

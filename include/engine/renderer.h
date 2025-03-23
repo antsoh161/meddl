@@ -5,6 +5,8 @@
 #include <stdexcept>
 
 #include "engine/gpu_types.h"
+#include "engine/loader.h"
+#include "engine/render/vk/texture.h"
 #include "engine/render/vk/vk.h"
 #include "engine/window.h"
 
@@ -90,6 +92,8 @@ class Renderer {
    void draw_vertices(uint32_t vertex_count = 0);
    void draw();
 
+   void load_texture(const std::string& path);
+
    std::shared_ptr<glfw::Window> window() { return _window; };
 
   private:
@@ -125,6 +129,8 @@ class Renderer {
    std::vector<vk::Semaphore> _image_available{};
    std::vector<vk::Semaphore> _render_finished{};
    std::vector<vk::Fence> _fences{};
+
+   std::unique_ptr<render::vk::Texture> _texture;
 
    size_t _current_frame{0};
    uint32_t _vertex_count{0};
