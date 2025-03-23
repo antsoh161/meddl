@@ -21,6 +21,7 @@
 #include "engine/render/vk/instance.h"
 #include "engine/render/vk/renderpass.h"
 #include "engine/render/vk/shared.h"
+#include "engine/shader.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -80,12 +81,11 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                                 graphics_conf,
                                                 _window->get_framebuffer_size());
    //
-   vk::ShaderCompiler compiler;
-   _vert_spirv =
-       compiler.compile(std::filesystem::current_path() / "shader.vert", shaderc_vertex_shader);
+   auto vert = engine::loader::load_shader(std::filesystem::current_path() / "shader.vert", "main");
+   _vert_spirv = vert.value().spirv_code;
 
-   _frag_spirv =
-       compiler.compile(std::filesystem::current_path() / "shader.frag", shaderc_fragment_shader);
+   auto frag = engine::loader::load_shader(std::filesystem::current_path() / "shader.frag", "main");
+   _frag_spirv = frag.value().spirv_code;
 
    _frag_mod = std::make_unique<vk::ShaderModule>(_device.get(), _frag_spirv);
    _vert_mod = std::make_unique<vk::ShaderModule>(_device.get(), _vert_spirv);
@@ -97,8 +97,8 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                                 engine::vertex_layout::normal_offset,
                                                 engine::vertex_layout::texcoord_offset);
 
-   _descriptor_set_layout =
-       std::make_unique<vk::DescriptorSetLayout>(_device.get(), vk::defaults::default_ubo_layout());
+   _descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(
+       _device.get(), graphics_conf.descriptor_layouts.ubo_sampler);
 
    _pipeline_layout =
        std::make_unique<vk::PipelineLayout>(_device.get(), _descriptor_set_layout.get());
@@ -114,7 +114,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _command_pool = std::make_unique<vk::CommandPool>(
        _device.get(), 0, vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
 
-   std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this](auto) {
+   std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this, graphics_conf](auto) {
       _command_buffers.emplace_back(_device.get(), _command_pool.get());
       _image_available.emplace_back(_device.get());
       _render_finished.emplace_back(_device.get());
@@ -125,28 +125,13 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
       buffer.map();  // TODO: map memory here?
 
-      const auto pool_sizes = {vk::defaults::default_descriptor_pool_size()};
-      auto& pool = _descriptor_pools.emplace_back(_device.get(), 1, pool_sizes);
+      auto& pool =
+          _descriptor_pools.emplace_back(_device.get(), graphics_conf.descriptor_pools.standard);
       _descriptor_sets.emplace_back(
           _device.get(), &pool, _descriptor_set_layout.get());  // todo: refactor
       _fences.emplace_back(_device.get());
 
-      // Update the descriptor set with uniform buffer binding
-      VkDescriptorBufferInfo buffer_info{};
-      buffer_info.buffer = buffer.vk();
-      buffer_info.offset = 0;
-      buffer_info.range = sizeof(engine::TransformUBO);
-
-      VkWriteDescriptorSet descriptor_write{};
-      descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptor_write.dstSet = _descriptor_sets.back().vk();
-      descriptor_write.dstBinding = 0;
-      descriptor_write.dstArrayElement = 0;
-      descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      descriptor_write.descriptorCount = 1;
-      descriptor_write.pBufferInfo = &buffer_info;
-
-      vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
+      _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(engine::TransformUBO));
    });
    _instance->log_device_info(_surface.get());
 }
@@ -392,6 +377,16 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
 
    frame_count++;
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
+}
+
+void Renderer::load_texture(const std::string& path)
+{
+   try {
+      _texture = std::make_unique<vk::Texture>(_device.get(), path);
+   }
+   catch (const std::exception& e) {
+      meddl::log::error("Failed to load texture: {}", e.what());
+   }
 }
 
 }  // namespace meddl::render
