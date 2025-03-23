@@ -15,7 +15,6 @@ Lock<T>::Lock(Device* device, T& sync_obj, uint64_t timeout)
 
 Fence::Fence(Device* device) : _device{device}
 {
-   std::println("Creating fence");
    VkFenceCreateInfo fence_info{};
    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -60,7 +59,6 @@ void Fence::reset(Device* device)
 Fence::~Fence()
 {
    if (_fence) {
-      std::println("Destroying fence");
       vkDestroyFence(_device->vk(), _fence, nullptr);
    }
 }

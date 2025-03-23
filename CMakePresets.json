@@ -14,6 +14,20 @@
          "generator": "Ninja"
       },
       {
+         "name": "windows-default",
+         "hidden": true,
+         "displayName": "default Windows build using Visual Studio generator",
+         "binaryDir": "build",
+         "generator": "Visual Studio 17 2022",
+         "architecture": "x64",
+         "cacheVariables": {
+            "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+            "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${presetName}",
+            "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/bin/${presetName}",
+            "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${presetName}"
+         }
+      },
+      {
          "name": "Debug",
          "inherits": "default",
          "displayName": "Debug",
@@ -54,6 +68,30 @@
          "cacheVariables": {
             "CMAKE_TEST_LAUNCHER": "${sourceDir}/.github/workflows/run_test.sh"
          }
+      },
+      {
+         "name": "Windows-Debug",
+         "inherits": "windows-default",
+         "displayName": "Windows Debug",
+         "description": "Debug build for Windows",
+         "binaryDir": "build/Windows-Debug",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "configuration": "Debug",
+            "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+         }
+      },
+      {
+         "name": "Windows-Release",
+         "inherits": "windows-default",
+         "displayName": "Windows Release",
+         "description": "Release build for Windows",
+         "binaryDir": "build/Windows-Release",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "configuration": "Release",
+            "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+         }
       }
    ],
    "buildPresets": [
@@ -72,6 +110,18 @@
       {
          "name": "Release-ci",
          "configurePreset": "Release-ci"
+      },
+      {
+         "name": "Windows-Debug",
+         "configurePreset": "Windows-Debug",
+         "configuration": "Debug",
+         "inheritConfigureEnvironment": true
+      },
+      {
+         "name": "Windows-Release",
+         "configurePreset": "Windows-Release",
+         "configuration": "Release",
+         "inheritConfigureEnvironment": true
       }
    ]
 }

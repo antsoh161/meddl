@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -16,7 +17,6 @@
 #include "engine/gpu_types.h"
 #include "engine/render/vk/buffer.h"
 #include "engine/render/vk/config.h"
-#include "engine/render/vk/defaults.h"
 #include "engine/render/vk/descriptor.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/instance.h"
@@ -116,7 +116,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    //
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
    _command_pool = std::make_unique<vk::CommandPool>(
-       _device.get(), 0, vk::defaults::DEFAULT_COMMAND_POOL_FLAGS);
+       _device.get(), 0, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
    std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this, graphics_conf](auto) {
       _command_buffers.emplace_back(_device.get(), _command_pool.get());
@@ -176,10 +176,22 @@ void Renderer::draw()
        .begin_renderpass(
            _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
 
-   _command_buffers.at(_current_frame)
-       .set_viewport(vk::defaults::default_viewport(_swapchain->extent()));
-   _command_buffers.at(_current_frame)
-       .set_scissor(vk::defaults::default_scissor(_swapchain->extent()));
+   VkViewport viewport = {
+       .x = 0.0f,
+       .y = 0.0f,
+       .width = static_cast<float>(_swapchain->extent().width),
+       .height = static_cast<float>(_swapchain->extent().height),
+       .minDepth = 0.0f,
+       .maxDepth = 1.0f,
+   };
+
+   _command_buffers.at(_current_frame).set_viewport(viewport);
+
+   VkRect2D scissor = {
+       .offset = {0, 0},
+       .extent = _swapchain->extent(),
+   };
+   _command_buffers.at(_current_frame).set_scissor(scissor);
    _command_buffers.at(_current_frame).bind_pipeline(_graphics_pipeline.get());
 
    vkCmdBindDescriptorSets(_command_buffers.at(_current_frame).vk(),

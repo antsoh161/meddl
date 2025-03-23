@@ -161,7 +161,6 @@ std::unique_ptr<Swapchain> Swapchain::recreate(Device* device,
                                                const glfw::FrameBufferSize& fbs,
                                                std::unique_ptr<Swapchain> old_swapchain)
 {
-   std::println("Recreating swapchain");
    device->wait_idle();
    if (old_swapchain) {
       old_swapchain.reset();

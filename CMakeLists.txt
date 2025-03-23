@@ -11,6 +11,13 @@ set(BUILD_TESTS OFF)
 set(BUILD_EXAMPLES ON)
 set(BUILD_SHARED_LIBS ON)
 
+if(MSVC)
+   set(BUILD_SHARED_LIBS OFF)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+   set(GLFW_BUILD_SHARED_LIBS OFF)
+   set(SPDLOG_BUILD_SHARED OFF)
+endif()
+
 set(FETCHCONTENT_QUIET OFF) # Debug
 if(BUILD_TESTS)
    enable_testing()
@@ -26,13 +33,16 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(third_party/tinygltf)
 
 find_package(Vulkan REQUIRED)
-
-# idk shaderc cmake seems ancient so pkgconfig..?
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
+if(WIN32)
+    add_subdirectory(third_party/shaderc)
+    set(SHADERC_LIB shaderc_combined)
+else()
+    find_package(PkgConfig REQUIRED)
+   pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
+    set(SHADERC_LIB PkgConfig::Shaderc)
+endif()
 
 file(GLOB_RECURSE srcs CONFIGURE_DEPENDS src/*.cpp)
-# file(GLOB_RECURSE modules CONFIGURE_DEPENDS src/*.cppm)
 file(GLOB_RECURSE hdrs CONFIGURE_DEPENDS include/*.h include/*.hpp)
 
 add_library(Meddl)
@@ -43,16 +53,18 @@ target_sources(Meddl PUBLIC
       BASE_DIRS ${PROJECT_SOURCE_DIR}/include
       FILES
          ${hdrs}
-   # PUBLIC
-   #    FILE_SET CXX_MODULES
-   #    BASE_DIRS ${PROJECT_SOURCE_DIR}/mod
-   #    FILES
-   #       ${modules}
 )
 
 target_link_libraries(Meddl PUBLIC
-                              glfw glm Vulkan::Vulkan PkgConfig::Shaderc pthread
-                           spdlog::spdlog tinygltf)
+    glfw
+    glm
+    Vulkan::Vulkan
+    # PkgConfig::Shaderc
+    ${SHADERC_LIB}
+    spdlog::spdlog
+    tinygltf
+    $<$<NOT:$<PLATFORM_ID:Windows>>:pthread>
+)
 
 target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN MEDDL_USE_SHADERC)
 target_compile_options(

@@ -4,7 +4,6 @@
 #include "engine/render/vk/buffer.h"
 #include "engine/render/vk/command.h"
 #include "engine/render/vk/debug.h"
-#include "engine/render/vk/defaults.h"
 #include "engine/render/vk/descriptor.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/instance.h"

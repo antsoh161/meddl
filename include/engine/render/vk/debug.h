@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <array>
 #include <optional>
 #include <set>
 #include <string>
@@ -30,7 +31,7 @@ enum class ValidationLayerType : uint8_t {
 //! Configuration for users
 struct DebugConfiguration {
    std::set<std::string> layers{"VK_LAYER_KHRONOS_validation"};
-   std::set<ValidationLayerType> validation_types{ValidationLayerType::All};
+   std::set<ValidationLayerType> validation_types{ValidationLayerType::Validation};
    ValidationLayerSeverity msg_severity{ValidationLayerSeverity::Warning};
 
    bool enable_debug_markers{true};
