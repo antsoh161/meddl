@@ -8,6 +8,9 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
+namespace {
+constexpr uint32_t MAX_DESCRIPTOR_SETS = 10;
+}
 
 namespace meddl::render::vk {
 
@@ -182,6 +185,50 @@ struct GraphicsConfiguration {
       VkPipelineLayoutCreateFlags flags{0};
       VkAllocationCallbacks* custom_allocator{nullptr};
    };
+
+   struct CommonDescriptorLayouts {
+      DescriptorSetLayoutConfiguration ubo_only = {
+          .bindings = {{.binding = 0,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                        .pImmutableSamplers = nullptr}}};
+
+      DescriptorSetLayoutConfiguration ubo_sampler = {
+          .bindings = {{.binding = 0,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                        .pImmutableSamplers = nullptr},
+                       {.binding = 1,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr}}};
+   } descriptor_layouts;
+
+   struct DescriptorPoolConfig {
+      uint32_t max_sets = MAX_DESCRIPTOR_SETS;
+      std::vector<VkDescriptorPoolSize> pool_sizes = {
+          {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = MAX_DESCRIPTOR_SETS},
+          {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+           .descriptorCount = MAX_DESCRIPTOR_SETS}};
+      VkDescriptorPoolCreateFlags flags = 0;
+      const VkAllocationCallbacks* custom_allocator = nullptr;
+   };
+
+   // Common descriptor pool configurations
+   struct CommonDescriptorPools {
+      DescriptorPoolConfig standard = {
+          .max_sets = 10,
+          .pool_sizes = {
+              {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 10},
+              {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 10}}};
+
+      DescriptorPoolConfig ubo_only = {.max_sets = MAX_DESCRIPTOR_SETS,
+                                       .pool_sizes = {{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                       .descriptorCount = MAX_DESCRIPTOR_SETS}}};
+   } descriptor_pools;
 
    //! Configurations that apply do multiple components
    struct Shared {

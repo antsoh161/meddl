@@ -2,30 +2,29 @@
 
 #include <stdexcept>
 
+#include "engine/render/vk/shared.h"
+
 namespace meddl::render::vk {
 
-DescriptorSetLayout::DescriptorSetLayout(Device* device, VkDescriptorSetLayoutBinding binding)
-    : DescriptorSetLayout(device, std::vector<VkDescriptorSetLayoutBinding>{binding})
-{
-}
-
-DescriptorSetLayout::DescriptorSetLayout(Device* device,
-                                         const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+DescriptorSetLayout::DescriptorSetLayout(
+    Device* device, const GraphicsConfiguration::DescriptorSetLayoutConfiguration& config)
     : _device(device)
 {
    VkDescriptorSetLayoutCreateInfo layout_info{};
    layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-   layout_info.bindingCount = static_cast<uint32_t>(bindings.size());
-   layout_info.pBindings = bindings.data();
+   layout_info.bindingCount = static_cast<uint32_t>(config.bindings.size());
+   layout_info.pBindings = config.bindings.data();
+   layout_info.flags = config.flags;
 
-   if (vkCreateDescriptorSetLayout(_device->vk(), &layout_info, nullptr, &_layout) != VK_SUCCESS) {
+   if (vkCreateDescriptorSetLayout(
+           _device->vk(), &layout_info, config.custom_allocator, &_layout) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor set layout");
    }
 }
 
 DescriptorSetLayout::~DescriptorSetLayout()
 {
-   if (_layout != VK_NULL_HANDLE) {
+   if (_layout) {
       vkDestroyDescriptorSetLayout(_device->vk(), _layout, nullptr);
    }
 }
@@ -39,9 +38,6 @@ DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
 DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other) noexcept
 {
    if (this != &other) {
-      if (_layout != VK_NULL_HANDLE) {
-         vkDestroyDescriptorSetLayout(_device->vk(), _layout, nullptr);
-      }
       _device = other._device;
       _layout = other._layout;
       other._layout = VK_NULL_HANDLE;
@@ -50,17 +46,18 @@ DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other)
 }
 
 DescriptorPool::DescriptorPool(Device* device,
-                               uint32_t max_sets,
-                               const std::vector<VkDescriptorPoolSize>& pool_sizes)
-    : _device(device), _pool_sizes(pool_sizes)
+                               const GraphicsConfiguration::DescriptorPoolConfig& config)
+    : _device(device), _pool_sizes(config.pool_sizes)
 {
    VkDescriptorPoolCreateInfo pool_info{};
    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
    pool_info.poolSizeCount = static_cast<uint32_t>(_pool_sizes.size());
    pool_info.pPoolSizes = _pool_sizes.data();
-   pool_info.maxSets = max_sets;
+   pool_info.maxSets = config.max_sets;
+   pool_info.flags = config.flags;
 
-   if (vkCreateDescriptorPool(_device->vk(), &pool_info, nullptr, &_pool) != VK_SUCCESS) {
+   if (vkCreateDescriptorPool(_device->vk(), &pool_info, config.custom_allocator, &_pool) !=
+       VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool");
    }
 }
@@ -81,9 +78,6 @@ DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept
 DescriptorPool& DescriptorPool::operator=(DescriptorPool&& other) noexcept
 {
    if (this != &other) {
-      if (_pool) {
-         vkDestroyDescriptorPool(_device->vk(), _pool, nullptr);
-      }
       _device = other._device;
       _pool = other._pool;
       other._pool = VK_NULL_HANDLE;
@@ -125,6 +119,27 @@ void DescriptorSet::update(uint32_t binding,
    descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
    descriptor_write.descriptorCount = 1;
    descriptor_write.pBufferInfo = &buffer_info;
+
+   vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
+}
+void DescriptorSet::update_image(uint32_t binding,
+                                 VkImageView view,
+                                 VkSampler sampler,
+                                 VkImageLayout layout)
+{
+   VkDescriptorImageInfo image_info{};
+   image_info.imageLayout = layout;
+   image_info.imageView = view;
+   image_info.sampler = sampler;
+
+   VkWriteDescriptorSet descriptor_write{};
+   descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+   descriptor_write.dstSet = _set;
+   descriptor_write.dstBinding = binding;
+   descriptor_write.dstArrayElement = 0;
+   descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+   descriptor_write.descriptorCount = 1;
+   descriptor_write.pImageInfo = &image_info;
 
    vkUpdateDescriptorSets(_device->vk(), 1, &descriptor_write, 0, nullptr);
 }
