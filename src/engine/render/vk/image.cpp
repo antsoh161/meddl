@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "engine/render/vk/buffer.h"
+#include "engine/render/vk/command.h"
 #include "engine/render/vk/shared.h"
 #include "vulkan/vulkan_core.h"
 
@@ -18,6 +20,7 @@ Image Image::create(Device* device,
                     uint32_t height)
 {
    Image result(device, config);
+   result._extent = {.width = width, .height = height, .depth = 1};
    auto image_info = config.get_image_create_info(width, height);
    if (vkCreateImage(device->vk(), &image_info, device->get_allocators(), &result._image) !=
        VK_SUCCESS) {
@@ -124,6 +127,70 @@ Image& Image::operator=(Image&& other) noexcept
       other._owned_resources.reset();
    }
    return *this;
+}
+void Image::transition(CommandPool* pool, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+   auto cmd_buffer = CommandBuffer::begin_one_time_submit(_device, pool);
+
+   VkImageMemoryBarrier barrier{};
+   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+   barrier.oldLayout = oldLayout;
+   barrier.newLayout = newLayout;
+   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+   barrier.image = _image;
+   barrier.subresourceRange.baseMipLevel = 0;
+   barrier.subresourceRange.levelCount = 1;
+   barrier.subresourceRange.baseArrayLayer = 0;
+   barrier.subresourceRange.layerCount = 1;
+
+   VkPipelineStageFlags sourceStage;
+   VkPipelineStageFlags destinationStage;
+
+   if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+       newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+      barrier.srcAccessMask = 0;
+      barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+      sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+      destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+   }
+   else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+            newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+      barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+      sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+      destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+   }
+   else {
+      throw std::invalid_argument("Unsupported layout transition");
+   }
+
+   vkCmdPipelineBarrier(
+       cmd_buffer.vk(), sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+   _current_layout = newLayout;
+}
+
+void Image::copy_from_buffer(Buffer* buffer, CommandPool* pool)
+{
+   auto cmd = CommandBuffer::begin_one_time_submit(_device, pool);
+
+   VkBufferImageCopy region{};
+   region.bufferOffset = 0;
+   region.bufferRowLength = 0;
+   region.bufferImageHeight = 0;
+   region.imageSubresource.mipLevel = 0;
+   region.imageSubresource.baseArrayLayer = 0;
+   region.imageSubresource.layerCount = 1;
+   region.imageOffset = {.x = 0, .y = 0, .z = 0};
+   region.imageExtent = {.width = static_cast<uint32_t>(_extent.width),
+                         .height = static_cast<uint32_t>(_extent.height),
+                         .depth = 1};
+
+   vkCmdCopyBufferToImage(
+       cmd.vk(), buffer->vk(), _image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
 void Image::populate_image_view()
