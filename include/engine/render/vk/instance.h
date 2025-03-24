@@ -7,10 +7,10 @@
 #include <optional>
 
 #include "GLFW/glfw3.h"
+#include "core/error.h"
 #include "engine/render/vk/debug.h"
 #include "engine/render/vk/defaults.h"
 #include "engine/render/vk/device.h"
-#include "engine/render/vk/error.h"
 #include "engine/render/vk/physical_device.h"
 
 namespace meddl::render::vk {
@@ -41,7 +41,7 @@ class PhysicalDevice;
 class Instance {
   public:
    Instance() = default;
-   std::expected<Instance, Error> static create(
+   std::expected<Instance, meddl::error::Error> static create(
        const InstanceConfiguration& config,
        const std::optional<DebugConfiguration>& debug_config = std::nullopt);
    ~Instance();
