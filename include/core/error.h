@@ -57,4 +57,5 @@ auto make_formatted_error(FormatString<Args...> fmt, Args&&... args)
    return detail::FormattedError<Args...>{fmt, std::make_tuple(std::forward<Args>(args)...)};
 }
 
+
 }  // namespace meddl::error

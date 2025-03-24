@@ -5,6 +5,7 @@
 #include <string>
 
 #include "engine/platform/window_handle.h"
+#include "core/error.h"
 
 namespace meddl::render {
 
@@ -18,11 +19,6 @@ namespace wgpu {
 class Context;
 struct surface_handle;
 }  // namespace wgpu
-
-struct surface_error {
-   std::string message;
-   int code;
-};
 
 struct vulkan_api {};
 struct wgpu_api {};
@@ -57,10 +53,10 @@ class Surface {
 
    [[nodiscard]] virtual void* native_handle() const = 0;
 
-   template <platform::window_handle WindowHandle>
-      requires compatible_api_window<API, WindowHandle>
-   static std::expected<std::unique_ptr<Surface<API>>, surface_error> create(
-       const WindowHandle& window, void* api_instance);
+   // template <platform::window_handle WindowHandle>
+   //    requires compatible_api_window<API, WindowHandle>
+   // static std::expected<std::unique_ptr<Surface<API>>, SurfaceError> create(
+   //     const WindowHandle& window, void* api_instance);
 };
 
 }  // namespace meddl::render

@@ -22,6 +22,7 @@ Image Image::create(Device* device,
    Image result(device, config);
    result._extent = {.width = width, .height = height, .depth = 1};
    auto image_info = config.get_image_create_info(width, height);
+
    if (vkCreateImage(device->vk(), &image_info, device->get_allocators(), &result._image) !=
        VK_SUCCESS) {
       meddl::log::error("Failed to create image, GG");
@@ -34,6 +35,7 @@ Image Image::create(Device* device,
    bool found_suitable = false;
 
    auto mem_properties = device->physical_device()->get_memory_properties();
+
    for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++) {
       if ((mem_requirements.memoryTypeBits & (1 << i)) &&
           (mem_properties.memoryTypes[i].propertyFlags & config.memory_flags) ==

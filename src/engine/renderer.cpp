@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
 
 #include "core/log.h"
@@ -56,23 +57,27 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    auto instance_config = vk::InstanceConfiguration();
    // _instance = std::make_unique<vk::Instance>(instance_config, debug_config);
    auto instance = vk::Instance::create(instance_config, debug_config);
-   if(instance) {
-      _instance = std::move(instance.value());
+   if (!instance) {
+      throw std::runtime_error(std::format("{}", instance.error().message()));
    }
+   _instance = std::move(instance.value());
    // _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
-   _surface = std::make_unique<render::vk::Surface>(
-       render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()},
-                                   &_instance)
-           .value());
+   auto surface =
+       render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()}, &_instance);
 
-   vk::DevicePicker picker(&_instance, _surface.get());
+   if (!surface) {
+      throw std::runtime_error("surface error, fix this error later");
+   }
+   _surface = std::move(surface.value());
+
+   vk::DevicePicker picker(&_instance, &_surface);
    auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
 
    _device = std::make_unique<vk::Device>(
        picked.value().best_Device, picked.value().config, _instance.debugger());
 
    auto graphics_conf = vk::presets::forward_rendering();
-   auto validator = vk::ConfigValidator(_device->physical_device(), _surface.get());
+   auto validator = vk::ConfigValidator(_device->physical_device(), &_surface);
 
    validator.validate_surface_format(graphics_conf);
    validator.validate_renderpass(graphics_conf);
@@ -80,7 +85,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _renderpass = std::make_unique<vk::RenderPass>(_device.get(), graphics_conf);
 
    _swapchain = std::make_unique<vk::Swapchain>(_device.get(),
-                                                _surface.get(),
+                                                &_surface,
                                                 _renderpass.get(),
                                                 graphics_conf,
                                                 _window->get_framebuffer_size());
@@ -137,7 +142,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
       _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(engine::TransformUBO));
    });
-   _instance.log_device_info(_surface.get());
+   _instance.log_device_info(&_surface);
 }
 
 void Renderer::draw()
@@ -153,7 +158,7 @@ void Renderer::draw()
 
    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
       _swapchain = vk::Swapchain::recreate(_device.get(),
-                                           _surface.get(),
+                                           &_surface,
                                            _renderpass.get(),
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
@@ -169,7 +174,7 @@ void Renderer::draw()
    _command_buffers.at(_current_frame).reset();
    _command_buffers.at(_current_frame).begin();
 
-    constexpr std::array<float, 4> DEBUG_COLOR = {0.1f, 0.1f, 1.0f, 1.0f};
+   constexpr std::array<float, 4> DEBUG_COLOR = {0.1f, 0.1f, 1.0f, 1.0f};
    _instance.debugger()->begin_region(
        &_command_buffers.at(_current_frame), "Frame Rendering", DEBUG_COLOR);
    _command_buffers.at(_current_frame)
@@ -245,7 +250,7 @@ void Renderer::draw()
       _window->reset_resized();
 
       _swapchain = vk::Swapchain::recreate(_device.get(),
-                                           _surface.get(),
+                                           &_surface,
                                            _renderpass.get(),
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
@@ -368,9 +373,9 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    const auto aspect = static_cast<float>(_swapchain->extent().width) /
                        static_cast<float>(_swapchain->extent().height);
 
-    constexpr float FOV_DEGREES = 45.0f;
-    constexpr float NEAR_PLANE = 0.01f;
-    constexpr float FAR_PLANE = 100.0f;
+   constexpr float FOV_DEGREES = 45.0f;
+   constexpr float NEAR_PLANE = 0.01f;
+   constexpr float FAR_PLANE = 100.0f;
    ubo.projection = glm::perspective(glm::radians(FOV_DEGREES), aspect, NEAR_PLANE, FAR_PLANE);
    ubo.projection[1][1] *= -1;  // Flip for Vulkan coordinate system
 
@@ -378,9 +383,10 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
       ubo.view = _view_matrix;
    }
    else {
-       constexpr float CAMERA_DISTANCE = 2.0f;
-      ubo.view = glm::lookAt(
-          glm::vec3(0.0f, 0.0f, -CAMERA_DISTANCE), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+      constexpr float CAMERA_DISTANCE = 2.0f;
+      ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -CAMERA_DISTANCE),
+                             glm::vec3(0.0f, 0.0f, 0.0f),
+                             glm::vec3(0.0f, 1.0f, 0.0f));
    }
 
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));

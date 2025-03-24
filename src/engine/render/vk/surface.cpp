@@ -29,9 +29,6 @@ Surface::Surface(Surface&& other) noexcept
 Surface& Surface::operator=(Surface&& other) noexcept
 {
    if (this != &other) {
-      if (_surface) {
-         vkDestroySurfaceKHR(_instance->vk(), _surface, nullptr);
-      }
       _surface = other._surface;
       _instance = other._instance;
       _id = other._id;
@@ -40,24 +37,15 @@ Surface& Surface::operator=(Surface&& other) noexcept
    }
    return *this;
 }
+
 template <>
-std::expected<Surface, surface_error> Surface::create<meddl::platform::glfw_window_handle>(
+std::expected<Surface, Error> Surface::create<meddl::platform::glfw_window_handle>(
     const meddl::platform::glfw_window_handle& window, Instance* instance)
 {
-   if (!instance) {
-      return std::unexpected(surface_error{
-          .message = "Invalid instance provided",
-          .code = -1,
-      });
-   }
-
    VkSurfaceKHR surface{nullptr};
    auto res = glfwCreateWindowSurface(instance->vk(), window.native(), nullptr, &surface);
    if (res != VK_SUCCESS) {
-      return std::unexpected(surface_error{
-          .message = std::format("Failed to create surface, error: {}", static_cast<int32_t>(res)),
-          .code = static_cast<int>(res),
-      });
+      return std::unexpected(Error::from_result(res, "Create surface"));
    }
    return Surface(surface, instance);
 }

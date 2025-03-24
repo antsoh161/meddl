@@ -11,11 +11,13 @@ using VkSurfaceKHR = VkSurfaceKHR_T*;
 
 namespace meddl::render::vk {
 
+
 class Instance;
 class Surface {
   public:
+   Surface() = default;
    template <platform::window_handle WindowHandle>
-   static std::expected<Surface, surface_error> create(const WindowHandle& window,
+   static std::expected<Surface, Error> create(const WindowHandle& window,
                                                        Instance* instance);
 
    ~Surface();
@@ -32,14 +34,14 @@ class Surface {
    Surface(VkSurfaceKHR surface, Instance* instance);
 
    VkSurfaceKHR _surface{VK_NULL_HANDLE};
-   Instance* _instance;
+   Instance* _instance{nullptr};
    uint64_t _id{0};
 
    static uint64_t next_id;  // hmm?
 };
 
 template <>
-std::expected<Surface, surface_error> Surface::create<meddl::platform::glfw_window_handle>(
+std::expected<Surface, Error> Surface::create<meddl::platform::glfw_window_handle>(
     const meddl::platform::glfw_window_handle& window, meddl::render::vk::Instance* instance);
 
 }  // namespace meddl::render::vk
