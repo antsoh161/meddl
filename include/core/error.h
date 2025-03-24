@@ -2,60 +2,38 @@
 
 #include <format>
 #include <source_location>
+#include <string>
+#include <string_view>
 
 namespace meddl::error {
+
 class Error {
   public:
-   constexpr Error(std::string_view message,
-                   std::source_location location = std::source_location::current()) noexcept
-       : _message(message), _location(location)
+   Error(std::string_view message, std::source_location loc = std::source_location::current())
+       : _message(message), _location(loc)
    {
    }
 
-   [[nodiscard]] constexpr std::string_view message() const noexcept { return _message; }
-   [[nodiscard]] constexpr const std::source_location& location() const noexcept
+   [[nodiscard]] const std::string& message() const { return _message; }
+
+   [[nodiscard]] const std::source_location& location() const { return _location; }
+
+   template <typename... Args>
+   static Error format(std::string_view fmt,
+                       Args&&... args,
+                       std::source_location loc = std::source_location::current())
    {
-      return _location;
+      return Error{std::format(fmt, std::forward<Args>(args)...), loc};
    }
 
-   [[nodiscard]] std::string format() const
+   [[nodiscard]] std::string full_message() const
    {
-      return std::format("{}({}): {}", _location.file_name(), _location.line(), _message);
+      return std::format("Error at {}:{}: {}", _location.file_name(), _location.line(), _message);
    }
 
   private:
-   std::string_view _message;
+   std::string _message;
    std::source_location _location;
 };
-
-template <typename... Args>
-struct FormatString {
-   template <size_t N>
-   constexpr FormatString(const char (&fmt)[N]) : view(fmt)
-   {
-   }
-   std::string_view view;
-};
-
-namespace detail {
-template <typename... Args>
-struct FormattedError {
-   FormatString<Args...> fmt;
-   std::tuple<Args...> args;
-
-   [[nodiscard]] std::string message() const
-   {
-      return std::apply([this](const auto&... args) { return std::format(fmt.view, args...); },
-                        args);
-   }
-};
-}  // namespace detail
-
-template <typename... Args>
-auto make_formatted_error(FormatString<Args...> fmt, Args&&... args)
-{
-   return detail::FormattedError<Args...>{fmt, std::make_tuple(std::forward<Args>(args)...)};
-}
-
 
 }  // namespace meddl::error

@@ -55,13 +55,11 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    meddl::log::get_logger()->set_level(spdlog::level::debug);
    auto debug_config = vk::DebugConfiguration();
    auto instance_config = vk::InstanceConfiguration();
-   // _instance = std::make_unique<vk::Instance>(instance_config, debug_config);
    auto instance = vk::Instance::create(instance_config, debug_config);
    if (!instance) {
       throw std::runtime_error(std::format("{}", instance.error().message()));
    }
    _instance = std::move(instance.value());
-   // _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
    auto surface =
        render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()}, &_instance);
 
@@ -84,11 +82,8 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
    _renderpass = std::make_unique<vk::RenderPass>(_device.get(), graphics_conf);
 
-   _swapchain = std::make_unique<vk::Swapchain>(_device.get(),
-                                                &_surface,
-                                                _renderpass.get(),
-                                                graphics_conf,
-                                                _window->get_framebuffer_size());
+   _swapchain = std::make_unique<vk::Swapchain>(
+       _device.get(), &_surface, _renderpass.get(), graphics_conf, _window->get_framebuffer_size());
    //
    auto vert = engine::loader::load_shader(std::filesystem::current_path() / "shader.vert", "main");
    _vert_spirv = vert.value().spirv_code;

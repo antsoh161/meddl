@@ -6,6 +6,7 @@
 
 #include "engine/render/vk/debug.h"
 #include "engine/render/vk/surface.h"
+#include "engine/render/vk/utils.h"
 
 namespace meddl::render::vk {
 
@@ -37,7 +38,7 @@ Instance& Instance::operator=(Instance&& other) noexcept
    return *this;
 }
 
-std::expected<Instance, vk::Error> Instance::create(
+std::expected<Instance, meddl::error::Error> Instance::create(
     const InstanceConfiguration& config, const std::optional<DebugConfiguration>& debug_config)
 {
    Instance instance;
@@ -84,15 +85,14 @@ std::expected<Instance, vk::Error> Instance::create(
 
    auto res = vkCreateInstance(&create_info, nullptr, &instance._instance);
    if (res != VK_SUCCESS) {
-      return std::unexpected(vk::Error::from_result(res, "Instance creation"));
+      return std::unexpected(
+          meddl::error::Error(std::format("Instance creation failed: {}", result_to_string(res))));
    }
 
    uint32_t n_devices = 0;
    vkEnumeratePhysicalDevices(instance._instance, &n_devices, nullptr);
    if (n_devices < 1) {
-      return std::unexpected(
-          vk::Error::from_code(ErrCode::NoPhysicalDevices,
-                                      "Instance creation found no physical devices"));
+      return std::unexpected(meddl::error::Error("No physical devices aquired from instance"));
    }
 
    std::vector<VkPhysicalDevice> devices(n_devices);

@@ -3,6 +3,8 @@
 #include <vulkan/vulkan_core.h>
 
 #include "GLFW/glfw3.h"
+#include "core/error.h"
+#include "engine/render/vk/utils.h"
 
 namespace meddl::render::vk {
 uint64_t Surface::next_id = 1;
@@ -39,13 +41,14 @@ Surface& Surface::operator=(Surface&& other) noexcept
 }
 
 template <>
-std::expected<Surface, Error> Surface::create<meddl::platform::glfw_window_handle>(
+std::expected<Surface, meddl::error::Error> Surface::create<meddl::platform::glfw_window_handle>(
     const meddl::platform::glfw_window_handle& window, Instance* instance)
 {
    VkSurfaceKHR surface{nullptr};
    auto res = glfwCreateWindowSurface(instance->vk(), window.native(), nullptr, &surface);
    if (res != VK_SUCCESS) {
-      return std::unexpected(Error::from_result(res, "Create surface"));
+      return std::unexpected(
+          meddl::error::Error(std::format("Surface creation failed: {}", result_to_string(res))));
    }
    return Surface(surface, instance);
 }
