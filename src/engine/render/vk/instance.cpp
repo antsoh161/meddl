@@ -9,9 +9,39 @@
 
 namespace meddl::render::vk {
 
-Instance::Instance(const InstanceConfiguration& config,
-                   const std::optional<DebugConfiguration>& debug_config)
+Instance::~Instance()
 {
+   if (_debugger && _instance) {
+      _debugger->deinit(_instance);
+   }
+   _physical_devices.clear();
+   if (_instance) {
+      vkDestroyInstance(_instance, nullptr);
+   }
+}
+
+Instance::Instance(Instance&& other) noexcept
+    : _instance(std::exchange(other._instance, nullptr)),
+      _debugger(std::move(other._debugger)),
+      _physical_devices(std::move(other._physical_devices))
+{
+}
+
+Instance& Instance::operator=(Instance&& other) noexcept
+{
+   if (this != &other) {
+      _instance = std::exchange(other._instance, nullptr);
+      _physical_devices = std::move(other._physical_devices);
+      _debugger = std::move(other._debugger);
+   }
+   return *this;
+}
+
+std::expected<Instance, InstanceError> Instance::create(
+    const InstanceConfiguration& config, const std::optional<DebugConfiguration>& debug_config)
+{
+   Instance instance;
+
    VkApplicationInfo app_info{
        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
        .pNext = nullptr,
@@ -32,11 +62,11 @@ Instance::Instance(const InstanceConfiguration& config,
    void* pNext = nullptr;
 
    if (debug_config.has_value()) {
-      _debugger = std::make_optional<Debugger>(*debug_config);
-      debug_chain = _debugger->make_create_info_chain();
+      instance._debugger = std::make_optional<Debugger>(*debug_config);
+      debug_chain = instance._debugger->make_create_info_chain();
       extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-      const auto& layers = _debugger->get_active_validation_layers();
+      const auto& layers = instance._debugger->get_active_validation_layers();
       for (const auto& layer : layers) {
          layers_cstyle.push_back(layer.c_str());
       }
@@ -52,38 +82,30 @@ Instance::Instance(const InstanceConfiguration& config,
        .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
        .ppEnabledExtensionNames = extensions.data()};
 
-   if (vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS) {
-      throw std::runtime_error("vkCreateInstance failed");
+   auto res = vkCreateInstance(&create_info, nullptr, &instance._instance);
+   if (res != VK_SUCCESS) {
+      return std::unexpected(InstanceError::from_result(res, "Instance creation"));
    }
 
    uint32_t n_devices = 0;
-   vkEnumeratePhysicalDevices(_instance, &n_devices, nullptr);
+   vkEnumeratePhysicalDevices(instance._instance, &n_devices, nullptr);
    if (n_devices < 1) {
-      throw std::runtime_error("No physical vulkan devices found");
+      return std::unexpected(InstanceError::from_code(
+          InstanceError::Code::NoPhysicalDevices, "Instance creation found no physical devices"));
    }
 
    std::vector<VkPhysicalDevice> devices(n_devices);
-   vkEnumeratePhysicalDevices(_instance, &n_devices, devices.data());
+   vkEnumeratePhysicalDevices(instance._instance, &n_devices, devices.data());
 
    for (const auto& device : devices) {
-      _physical_devices.emplace_back(this, device);
+      instance._physical_devices.emplace_back(&instance, device);
    }
-   meddl::log::debug("Created {} physical devices", _physical_devices.size());
+   meddl::log::debug("Created {} physical devices", instance._physical_devices.size());
 
-   if (_debugger && _instance) {
-      _debugger->init(_instance, debug_chain);
+   if (instance._debugger && instance._instance) {
+      instance._debugger->init(instance._instance, debug_chain);
    }
-}
-
-Instance::~Instance()
-{
-   if (_debugger && _instance) {
-      _debugger->deinit(_instance);
-   }
-   _physical_devices.clear();
-   if (_instance) {
-      vkDestroyInstance(_instance, nullptr);
-   }
+   return instance;
 }
 
 std::vector<PhysicalDevice>& Instance::get_physical_devices()

@@ -54,18 +54,22 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    meddl::log::get_logger()->set_level(spdlog::level::debug);
    auto debug_config = vk::DebugConfiguration();
    auto instance_config = vk::InstanceConfiguration();
-   _instance = std::make_unique<vk::Instance>(instance_config, debug_config);
+   // _instance = std::make_unique<vk::Instance>(instance_config, debug_config);
+   auto instance = vk::Instance::create(instance_config, debug_config);
+   if(instance) {
+      _instance = std::move(instance.value());
+   }
    // _surface = std::make_unique<vk::Surface>(_window.get(), _instance.get());
    _surface = std::make_unique<render::vk::Surface>(
        render::vk::Surface::create(platform::glfw_window_handle{_window.get()->glfw()},
-                                   _instance.get())
+                                   &_instance)
            .value());
 
-   vk::DevicePicker picker(_instance.get(), _surface.get());
+   vk::DevicePicker picker(&_instance, _surface.get());
    auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
 
    _device = std::make_unique<vk::Device>(
-       picked.value().best_Device, picked.value().config, _instance->debugger());
+       picked.value().best_Device, picked.value().config, _instance.debugger());
 
    auto graphics_conf = vk::presets::forward_rendering();
    auto validator = vk::ConfigValidator(_device->physical_device(), _surface.get());
@@ -133,7 +137,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
       _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(engine::TransformUBO));
    });
-   _instance->log_device_info(_surface.get());
+   _instance.log_device_info(_surface.get());
 }
 
 void Renderer::draw()

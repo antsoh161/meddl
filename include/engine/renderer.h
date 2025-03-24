@@ -99,7 +99,7 @@ class Renderer {
   private:
    void update_uniform_buffer(uint32_t current_image);
    // "core"
-   std::unique_ptr<vk::Instance> _instance{};
+   vk::Instance _instance;
    std::shared_ptr<glfw::Window> _window{};
    std::unique_ptr<vk::Surface> _surface{};
    std::unique_ptr<vk::Device> _device{};
