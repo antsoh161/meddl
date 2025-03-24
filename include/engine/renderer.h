@@ -101,7 +101,7 @@ class Renderer {
    // "core"
    vk::Instance _instance;
    std::shared_ptr<glfw::Window> _window{};
-   std::unique_ptr<vk::Surface> _surface{};
+   vk::Surface _surface;
    std::unique_ptr<vk::Device> _device{};
 
    // Graphics

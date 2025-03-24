@@ -37,7 +37,7 @@ Instance& Instance::operator=(Instance&& other) noexcept
    return *this;
 }
 
-std::expected<Instance, InstanceError> Instance::create(
+std::expected<Instance, vk::Error> Instance::create(
     const InstanceConfiguration& config, const std::optional<DebugConfiguration>& debug_config)
 {
    Instance instance;
@@ -84,14 +84,15 @@ std::expected<Instance, InstanceError> Instance::create(
 
    auto res = vkCreateInstance(&create_info, nullptr, &instance._instance);
    if (res != VK_SUCCESS) {
-      return std::unexpected(InstanceError::from_result(res, "Instance creation"));
+      return std::unexpected(vk::Error::from_result(res, "Instance creation"));
    }
 
    uint32_t n_devices = 0;
    vkEnumeratePhysicalDevices(instance._instance, &n_devices, nullptr);
    if (n_devices < 1) {
-      return std::unexpected(InstanceError::from_code(
-          InstanceError::Code::NoPhysicalDevices, "Instance creation found no physical devices"));
+      return std::unexpected(
+          vk::Error::from_code(ErrCode::NoPhysicalDevices,
+                                      "Instance creation found no physical devices"));
    }
 
    std::vector<VkPhysicalDevice> devices(n_devices);

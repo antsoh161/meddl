@@ -7,60 +7,13 @@
 #include <optional>
 
 #include "GLFW/glfw3.h"
-#include "core/error.h"
 #include "engine/render/vk/debug.h"
 #include "engine/render/vk/defaults.h"
 #include "engine/render/vk/device.h"
+#include "engine/render/vk/error.h"
 #include "engine/render/vk/physical_device.h"
 
 namespace meddl::render::vk {
-
-struct InstanceError : public meddl::error::Error {
-   enum class Code {
-      None,
-      // vk error
-      OutOfMemory,
-      HostOutOfMemory,
-      DeviceLost,
-      // user error
-      NoPhysicalDevices,
-   } code;
-   VkResult vk_result{VK_SUCCESS};
-   InstanceError(std::string_view msg,
-                 Code err_code,
-                 VkResult result = VK_SUCCESS,
-                 std::source_location loc = std::source_location::current())
-       : Error(msg, loc), code(err_code), vk_result(result)
-   {
-   }
-   static InstanceError from_result(VkResult result, std::string_view operation)
-   {
-      Code code{};
-      switch (result) {
-         case VK_ERROR_OUT_OF_HOST_MEMORY:
-            code = Code::HostOutOfMemory;
-            break;
-         case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-            code = Code::OutOfMemory;
-            break;
-         case VK_ERROR_DEVICE_LOST:
-            code = Code::DeviceLost;
-            break;
-         default:
-            code = Code::None;
-            break;
-      }
-
-      std::string message =
-          std::format("{} failed with {}", operation, static_cast<int32_t>(result));
-      return {message, code, result};
-   }
-   static InstanceError from_code(Code code, std::string_view operation)
-   {
-      std::string message = std::format("{} failed", operation);
-      return {message, code};
-   }
-};
 
 struct InstanceConfiguration {
    InstanceConfiguration()
@@ -88,7 +41,7 @@ class PhysicalDevice;
 class Instance {
   public:
    Instance() = default;
-   std::expected<Instance, InstanceError> static create(
+   std::expected<Instance, Error> static create(
        const InstanceConfiguration& config,
        const std::optional<DebugConfiguration>& debug_config = std::nullopt);
    ~Instance();
@@ -109,7 +62,6 @@ class Instance {
                         bool with_extensions = false);
 
   private:
-
    VkInstance _instance{VK_NULL_HANDLE};
    std::optional<Debugger> _debugger;
    std::vector<PhysicalDevice> _physical_devices{};
