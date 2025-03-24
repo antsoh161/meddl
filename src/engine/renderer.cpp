@@ -168,8 +168,10 @@ void Renderer::draw()
 
    _command_buffers.at(_current_frame).reset();
    _command_buffers.at(_current_frame).begin();
-   _instance->debugger()->begin_region(
-       &_command_buffers.at(_current_frame), "Frame Rendering", {0.1f, 0.1f, 1.0f, 1.0f});
+
+    constexpr std::array<float, 4> DEBUG_COLOR = {0.1f, 0.1f, 1.0f, 1.0f};
+   _instance.debugger()->begin_region(
+       &_command_buffers.at(_current_frame), "Frame Rendering", DEBUG_COLOR);
    _command_buffers.at(_current_frame)
        .begin_renderpass(
            _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
@@ -197,7 +199,7 @@ void Renderer::draw()
 
    _command_buffers.at(_current_frame).end_renderpass();
    _command_buffers.at(_current_frame).end();
-   _instance->debugger()->end_region(&_command_buffers.at(_current_frame));
+   _instance.debugger()->end_region(&_command_buffers.at(_current_frame));
 
    VkSubmitInfo submit_info{};
    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -360,26 +362,27 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
        std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time)
            .count();
 
-   static int frame_count = 0;
-
    engine::TransformUBO ubo{};
    ubo.model = glm::mat4(1.0f);
 
    const auto aspect = static_cast<float>(_swapchain->extent().width) /
                        static_cast<float>(_swapchain->extent().height);
 
-   ubo.projection = glm::perspective(glm::radians(45.0f), aspect, 0.01f, 100.0f);
+    constexpr float FOV_DEGREES = 45.0f;
+    constexpr float NEAR_PLANE = 0.01f;
+    constexpr float FAR_PLANE = 100.0f;
+   ubo.projection = glm::perspective(glm::radians(FOV_DEGREES), aspect, NEAR_PLANE, FAR_PLANE);
    ubo.projection[1][1] *= -1;  // Flip for Vulkan coordinate system
 
    if (_camera_updated) {
       ubo.view = _view_matrix;
    }
    else {
+       constexpr float CAMERA_DISTANCE = 2.0f;
       ubo.view = glm::lookAt(
-          glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+          glm::vec3(0.0f, 0.0f, -CAMERA_DISTANCE), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
    }
 
-   frame_count++;
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
 }
 
