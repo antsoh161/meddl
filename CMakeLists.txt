@@ -3,7 +3,7 @@ project(Meddl)
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -31,6 +31,9 @@ add_subdirectory(third_party/spdlog)
 set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(third_party/tinygltf)
+
+set(STDEXEC_BUILD_TESTS OFF)
+add_subdirectory(third_party/stdexec)
 
 find_package(Vulkan REQUIRED)
 if(WIN32)
