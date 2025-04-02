@@ -14,15 +14,19 @@ ThreadPoolManager& ThreadPoolManager::instance()
 
 void ThreadPoolManager::reset(std::optional<uint32_t> max_threads)
 {
-   uint32_t no_threads =
+   uint32_t hardware_threads =
        max_threads.has_value() ? max_threads.value() : std::thread::hardware_concurrency();
-   //! TODO: Is there a set of right numbers?
-   uint32_t available_threads = std::max(1u, no_threads - 2);
-   uint32_t render_threads = std::max(1u, available_threads / 3);
-   uint32_t compute_threads = std::max(1u, available_threads / 3);
-   uint32_t io_threads = std::max(2u, available_threads / 6);
-   uint32_t general_threads =
-       std::max(1u, available_threads - (render_threads + compute_threads + io_threads));
+
+   uint32_t available_threads = std::max(1u, hardware_threads - 1);
+   const uint32_t kMinThreadsPerPool = 1;
+   uint32_t render_threads =
+       std::max(kMinThreadsPerPool, static_cast<uint32_t>(available_threads * 0.3));
+   uint32_t compute_threads =
+       std::max(kMinThreadsPerPool, static_cast<uint32_t>(available_threads * 0.3));
+
+   uint32_t io_threads = std::max(2u, static_cast<uint32_t>(available_threads * 0.25));
+   uint32_t general_threads = std::max(
+       kMinThreadsPerPool, available_threads - (render_threads + compute_threads + io_threads));
 
    meddl::log::debug("Thread pool initialized with:");
    _pools[PoolType::Rendering] = std::make_unique<exec::static_thread_pool>(render_threads);

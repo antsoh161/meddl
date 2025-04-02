@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(BUILD_TESTS OFF)
+
+set(BUILD_TESTS ON)
 set(BUILD_EXAMPLES ON)
 set(BUILD_SHARED_LIBS ON)
 
@@ -24,10 +25,13 @@ if(BUILD_TESTS)
    add_subdirectory(third_party/catch2)
 endif()
 add_subdirectory(third_party/glfw)
+set(GLM_ENABLE_CXX_20  ON CACHE BOOL "Use c++20 in glm")
 add_subdirectory(third_party/glm)
+
 set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of fmt" FORCE)
 set(SPDLOG_ENABLE_THREAD_POOL ON CACHE BOOL "Enable thread pool for async logging" FORCE)
 add_subdirectory(third_party/spdlog)
+
 set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(third_party/tinygltf)
@@ -62,18 +66,27 @@ target_link_libraries(Meddl PUBLIC
     glfw
     glm
     Vulkan::Vulkan
-    # PkgConfig::Shaderc
     ${SHADERC_LIB}
     spdlog::spdlog
     tinygltf
+    stdexec
     $<$<NOT:$<PLATFORM_ID:Windows>>:pthread>
 )
 
-target_compile_definitions(Meddl PUBLIC GLFW_INCLUDE_VULKAN MEDDL_USE_SHADERC)
+target_compile_definitions(Meddl PUBLIC
+   GLFW_INCLUDE_VULKAN
+   MEDDL_USE_SHADERC)
+
 target_compile_options(
   Meddl
   PRIVATE $<$<CONFIG:Release>:-O2>
+  PRIVATE $<$<CXX_COMPILER_ID:GNU>:-fcoroutines>
+  # PRIVATE $<$<CONFIG:Debug>:-fno-omit-frame-pointer -fsanitize=address>
   PRIVATE $<$<CONFIG:Debug>:-O0>)
+
+# target_link_options(
+#   Meddl
+#   PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
 
 if(BUILD_EXAMPLES)
    add_subdirectory(examples)

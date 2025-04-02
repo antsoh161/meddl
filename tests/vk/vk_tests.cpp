@@ -32,9 +32,9 @@ struct Syncs {
 };
 }  // namespace
 
-class MeddlFixture {
+class VkFixture {
   public:
-   ~MeddlFixture()
+   ~VkFixture()
    {
       if (_device) {
          vkDeviceWaitIdle(_device->vk());
@@ -166,12 +166,12 @@ class MeddlFixture {
    std::vector<uint32_t> _vert_spirv{};
 };
 
-TEST_CASE_METHOD(MeddlFixture, "Initialization")
+TEST_CASE_METHOD(VkFixture, "Initialization")
 {
    REQUIRE_NOTHROW(init_all());  // NOLINT
 }
 
-TEST_CASE_METHOD(MeddlFixture, "CommandBufferLifecycle")
+TEST_CASE_METHOD(VkFixture, "CommandBufferLifecycle")
 {
    init_all();
    REQUIRE(_command_buffer->state() == CommandBuffer::State::Ready);
@@ -187,7 +187,7 @@ TEST_CASE_METHOD(MeddlFixture, "CommandBufferLifecycle")
    REQUIRE_NOTHROW(_command_buffer->reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
 }
 
-TEST_CASE_METHOD(MeddlFixture, "CommandBufferBadOrder")
+TEST_CASE_METHOD(VkFixture, "CommandBufferBadOrder")
 {
    init_instance();
    init_window();
@@ -212,7 +212,7 @@ TEST_CASE_METHOD(MeddlFixture, "CommandBufferBadOrder")
    REQUIRE(result.error() == VulkanError::CommandBufferNotExecutable);
 }
 
-TEST_CASE_METHOD(MeddlFixture, "Renderpass")
+TEST_CASE_METHOD(VkFixture, "Renderpass")
 {
    init_all();
    REQUIRE_NOTHROW([&] {
@@ -237,7 +237,7 @@ TEST_CASE_METHOD(MeddlFixture, "Renderpass")
    }());
 }
 
-TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
+TEST_CASE_METHOD(VkFixture, "CompileShaders")
 {
    init_instance();
    init_window();
@@ -256,7 +256,7 @@ TEST_CASE_METHOD(MeddlFixture, "CompileShaders")
    REQUIRE_NOTHROW(std::make_unique<ShaderModule>(_device.get(), frag_spirv));
 }
 
-TEST_CASE_METHOD(MeddlFixture, "Renderloop")
+TEST_CASE_METHOD(VkFixture, "Renderloop")
 {
    init_all();
    uint32_t imageIndex{};
