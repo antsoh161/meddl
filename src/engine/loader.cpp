@@ -434,7 +434,7 @@ class Loader {
                anim_channel.property = AnimationProperty::Weights;
             }
             else {
-               continue;  
+               continue;
             }
 
             const auto& input_accessor = _model.accessors[sampler.input];
