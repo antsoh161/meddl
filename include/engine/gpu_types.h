@@ -1,13 +1,13 @@
 #pragma once
 #include "glm/glm.hpp"
-namespace meddl::engine {
+namespace meddl {
 
 struct Vertex {
    glm::vec3 position;
-   glm::vec3 color;
+   glm::vec4 color;
    glm::vec3 normal;
-   glm::vec2 texCoord;
-
+   glm::vec2 uv;
+   glm::vec4 tangent;
    bool operator==(const Vertex& other) const = default;
 };
 
@@ -15,7 +15,8 @@ namespace vertex_layout {
 constexpr size_t position_offset = offsetof(Vertex, position);
 constexpr size_t color_offset = offsetof(Vertex, color);
 constexpr size_t normal_offset = offsetof(Vertex, normal);
-constexpr size_t texcoord_offset = offsetof(Vertex, texCoord);
+constexpr size_t uv_offset = offsetof(Vertex, uv);
+constexpr size_t tangent_offset = offsetof(Vertex, tangent);
 constexpr size_t stride = sizeof(Vertex);
 
 }  // namespace vertex_layout
@@ -74,4 +75,4 @@ constexpr size_t material_index_offset = offsetof(Mesh, material_index);
 constexpr size_t stride = sizeof(Mesh);
 }  // namespace mesh_layout
 
-}  // namespace meddl::engine
+}  // namespace meddl

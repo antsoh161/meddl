@@ -94,12 +94,11 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _frag_mod = std::make_unique<vk::ShaderModule>(_device.get(), _frag_spirv);
    _vert_mod = std::make_unique<vk::ShaderModule>(_device.get(), _vert_spirv);
 
-   const auto bdesc = vk::create_vertex_binding_description(engine::vertex_layout::stride);
-   const auto vattr =
-       vk::create_vertex_attribute_descriptions(engine::vertex_layout::position_offset,
-                                                engine::vertex_layout::color_offset,
-                                                engine::vertex_layout::normal_offset,
-                                                engine::vertex_layout::texcoord_offset);
+   const auto bdesc = vk::create_vertex_binding_description(vertex_layout::stride);
+   const auto vattr = vk::create_vertex_attribute_descriptions(vertex_layout::position_offset,
+                                                               vertex_layout::color_offset,
+                                                               vertex_layout::normal_offset,
+                                                               vertex_layout::uv_offset);
 
    _descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(
        _device.get(), graphics_conf.descriptor_layouts.ubo_sampler);
@@ -124,7 +123,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
       _render_finished.emplace_back(_device.get());
       auto& buffer = _uniform_buffers.emplace_back(
           _device.get(),
-          engine::transform_layout::stride,
+          transform_layout::stride,
           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
       buffer.map();  // TODO: map memory here?
@@ -135,7 +134,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
           _device.get(), &pool, _descriptor_set_layout.get());  // todo: refactor
       _fences.emplace_back(_device.get());
 
-      _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(engine::TransformUBO));
+      _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(TransformUBO));
    });
    _instance.log_device_info(&_surface);
 }
@@ -302,9 +301,9 @@ void Renderer::set_view_matrix(const glm::mat4 view_matrix)
    _camera_updated = true;
 }
 
-void Renderer::set_vertices(const std::vector<engine::Vertex>& vertices)
+void Renderer::set_vertices(const std::vector<Vertex>& vertices)
 {
-   const VkDeviceSize buffer_size = vertices.size() * sizeof(engine::Vertex);
+   const VkDeviceSize buffer_size = vertices.size() * sizeof(Vertex);
 
    vkDeviceWaitIdle(_device->vk());
 
@@ -374,7 +373,7 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
        std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time)
            .count();
 
-   engine::TransformUBO ubo{};
+   TransformUBO ubo{};
    ubo.model = glm::mat4(1.0f);
 
    const auto aspect = static_cast<float>(_swapchain->extent().width) /
