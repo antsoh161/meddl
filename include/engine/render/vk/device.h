@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
+#include "core/error.h"
 #include "engine/render/vk/debug.h"
 #include "engine/render/vk/physical_device.h"
 #include "engine/render/vk/queue.h"
@@ -37,16 +39,12 @@ struct DeviceConfiguration {
 
 class Device {
   public:
-   Device() = delete;
-   Device(PhysicalDevice* physical_device,
-          const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
-          const std::unordered_set<std::string>& device_extensions,
-          const std::optional<VkPhysicalDeviceFeatures>& device_features = std::nullopt,
-          const std::set<std::string>& validation_layers = {});
+   Device() = default;
+   static std::expected<Device, meddl::error::Error> create(
+       PhysicalDevice* physical_device,
+       const DeviceConfiguration& config,
+       const std::optional<Debugger>& debugger = std::nullopt);
 
-   Device(PhysicalDevice* physical_device,
-          const DeviceConfiguration& config,
-          const std::optional<Debugger>& debugger);
    ~Device();
 
    Device(const Device&) = delete;
@@ -65,10 +63,14 @@ class Device {
    VkAllocationCallbacks* get_allocators() { return nullptr; }
 
   private:
+   Device(PhysicalDevice* physical_device,
+          const DeviceConfiguration& config,
+          const std::optional<Debugger>& debugger);
+
    std::vector<Queue> _queues{};
-   VkDevice _device{};
-   PhysicalDevice* _physical_device;
-   std::unordered_set<std::string> _enabled_extensions;
+   VkDevice _device{nullptr};
+   PhysicalDevice* _physical_device{nullptr};
+   std::unordered_set<std::string> _enabled_extensions{};
    VkPhysicalDeviceFeatures _enabled_features{};
 };
 

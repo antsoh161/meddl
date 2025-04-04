@@ -102,7 +102,7 @@ class Renderer {
    vk::Instance _instance;
    std::shared_ptr<glfw::Window> _window{};
    vk::Surface _surface;
-   std::unique_ptr<vk::Device> _device{};
+   vk::Device _device{};
 
    // Graphics
    std::unique_ptr<vk::Swapchain> _swapchain{};

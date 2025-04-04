@@ -71,19 +71,25 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    vk::DevicePicker picker(&_instance, &_surface);
    auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
 
-   _device = std::make_unique<vk::Device>(
-       picked.value().best_Device, picked.value().config, _instance.debugger());
+   // _device = std::make_unique<vk::Device>(
+   //     picked.value().best_Device, picked.value().config, _instance.debugger());
 
+   auto device =
+       vk::Device::create(picked.value().best_Device, picked.value().config, _instance.debugger());
+   if (!device) {
+      throw std::runtime_error(std::format("Device error: {}", device.error().full_message()));
+   }
+   _device = std::move(device.value());
    auto graphics_conf = vk::presets::forward_rendering();
-   auto validator = vk::ConfigValidator(_device->physical_device(), &_surface);
+   auto validator = vk::ConfigValidator(_device.physical_device(), &_surface);
 
    validator.validate_surface_format(graphics_conf);
    validator.validate_renderpass(graphics_conf);
 
-   _renderpass = std::make_unique<vk::RenderPass>(_device.get(), graphics_conf);
+   _renderpass = std::make_unique<vk::RenderPass>(&_device, graphics_conf);
 
    _swapchain = std::make_unique<vk::Swapchain>(
-       _device.get(), &_surface, _renderpass.get(), graphics_conf, _window->get_framebuffer_size());
+       &_device, &_surface, _renderpass.get(), graphics_conf, _window->get_framebuffer_size());
    //
    auto vert = engine::loader::load_shader(std::filesystem::current_path() / "shader.vert", "main");
    _vert_spirv = vert.value().spirv_code;
@@ -91,8 +97,8 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    auto frag = engine::loader::load_shader(std::filesystem::current_path() / "shader.frag", "main");
    _frag_spirv = frag.value().spirv_code;
 
-   _frag_mod = std::make_unique<vk::ShaderModule>(_device.get(), _frag_spirv);
-   _vert_mod = std::make_unique<vk::ShaderModule>(_device.get(), _vert_spirv);
+   _frag_mod = std::make_unique<vk::ShaderModule>(&_device, _frag_spirv);
+   _vert_mod = std::make_unique<vk::ShaderModule>(&_device, _vert_spirv);
 
    const auto bdesc = vk::create_vertex_binding_description(vertex_layout::stride);
    const auto vattr = vk::create_vertex_attribute_descriptions(vertex_layout::position_offset,
@@ -101,13 +107,12 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                                                vertex_layout::uv_offset);
 
    _descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(
-       _device.get(), graphics_conf.descriptor_layouts.ubo_sampler);
+       &_device, graphics_conf.descriptor_layouts.ubo_sampler);
 
-   _pipeline_layout =
-       std::make_unique<vk::PipelineLayout>(_device.get(), _descriptor_set_layout.get());
+   _pipeline_layout = std::make_unique<vk::PipelineLayout>(&_device, _descriptor_set_layout.get());
    _graphics_pipeline = std::make_unique<vk::GraphicsPipeline>(_vert_mod.get(),
                                                                _frag_mod.get(),
-                                                               _device.get(),
+                                                               &_device,
                                                                _pipeline_layout.get(),
                                                                _renderpass.get(),
                                                                bdesc,
@@ -115,24 +120,24 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    //
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
    _command_pool = std::make_unique<vk::CommandPool>(
-       _device.get(), 0, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+       &_device, 0, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
    std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this, graphics_conf](auto) {
-      _command_buffers.emplace_back(_device.get(), _command_pool.get());
-      _image_available.emplace_back(_device.get());
-      _render_finished.emplace_back(_device.get());
+      _command_buffers.emplace_back(&_device, _command_pool.get());
+      _image_available.emplace_back(&_device);
+      _render_finished.emplace_back(&_device);
       auto& buffer = _uniform_buffers.emplace_back(
-          _device.get(),
+          &_device,
           transform_layout::stride,
           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
       buffer.map();  // TODO: map memory here?
 
       auto& pool =
-          _descriptor_pools.emplace_back(_device.get(), graphics_conf.descriptor_pools.standard);
+          _descriptor_pools.emplace_back(&_device, graphics_conf.descriptor_pools.standard);
       _descriptor_sets.emplace_back(
-          _device.get(), &pool, _descriptor_set_layout.get());  // todo: refactor
-      _fences.emplace_back(_device.get());
+          &_device, &pool, _descriptor_set_layout.get());  // todo: refactor
+      _fences.emplace_back(&_device);
 
       _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(TransformUBO));
    });
@@ -141,9 +146,9 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
 
 void Renderer::draw()
 {
-   _fences.at(_current_frame).wait(_device.get());
+   _fences.at(_current_frame).wait(&_device);
    uint32_t image_index{};
-   const auto result = vkAcquireNextImageKHR(_device->vk(),
+   const auto result = vkAcquireNextImageKHR(_device.vk(),
                                              _swapchain->vk(),
                                              std::numeric_limits<uint64_t>::max(),
                                              _image_available.at(_current_frame).vk(),
@@ -151,7 +156,7 @@ void Renderer::draw()
                                              &image_index);
 
    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      _swapchain = vk::Swapchain::recreate(_device.get(),
+      _swapchain = vk::Swapchain::recreate(&_device,
                                            &_surface,
                                            _renderpass.get(),
                                            _window->get_framebuffer_size(),
@@ -161,7 +166,7 @@ void Renderer::draw()
    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
       throw std::runtime_error("Failed to acquire next image");
    }
-   _fences.at(_current_frame).reset(_device.get());
+   _fences.at(_current_frame).reset(&_device);
 
    update_uniform_buffer(_current_frame);
 
@@ -233,7 +238,7 @@ void Renderer::draw()
    submit_info.pSignalSemaphores = signal_semaphores.data();
 
    if (vkQueueSubmit(
-           _device->queues().at(0).vk(), 1, &submit_info, _fences.at(_current_frame).vk()) !=
+           _device.queues().at(0).vk(), 1, &submit_info, _fences.at(_current_frame).vk()) !=
        VK_SUCCESS) {
       throw std::runtime_error("Failed to submit draw command buffer");
    }
@@ -250,12 +255,12 @@ void Renderer::draw()
    present_info.pImageIndices = &image_index;
 
    // Use the presentation queue from your device
-   const auto result2 = vkQueuePresentKHR(_device->queues().at(0).vk(), &present_info);
+   const auto result2 = vkQueuePresentKHR(_device.queues().at(0).vk(), &present_info);
    if (result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR ||
        _window->is_resized()) {
       _window->reset_resized();
 
-      _swapchain = vk::Swapchain::recreate(_device.get(),
+      _swapchain = vk::Swapchain::recreate(&_device,
                                            &_surface,
                                            _renderpass.get(),
                                            _window->get_framebuffer_size(),
@@ -273,10 +278,10 @@ void Renderer::set_indices(const std::vector<uint32_t>& indices)
 {
    const VkDeviceSize buffer_size = indices.size() * sizeof(uint32_t);
 
-   vkDeviceWaitIdle(_device->vk());
+   vkDeviceWaitIdle(_device.vk());
 
    auto staging_buffer = std::make_unique<vk::Buffer>(
-       _device.get(),
+       &_device,
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -286,7 +291,7 @@ void Renderer::set_indices(const std::vector<uint32_t>& indices)
    staging_buffer->unmap();
 
    _index_buffer = std::make_unique<vk::Buffer>(
-       _device.get(),
+       &_device,
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -305,10 +310,10 @@ void Renderer::set_vertices(const std::vector<Vertex>& vertices)
 {
    const VkDeviceSize buffer_size = vertices.size() * sizeof(Vertex);
 
-   vkDeviceWaitIdle(_device->vk());
+   vkDeviceWaitIdle(_device.vk());
 
    auto staging_buffer = std::make_unique<vk::Buffer>(
-       _device.get(),
+       &_device,
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -318,7 +323,7 @@ void Renderer::set_vertices(const std::vector<Vertex>& vertices)
    staging_buffer->unmap();
 
    _vertex_buffer = std::make_unique<vk::Buffer>(
-       _device.get(),
+       &_device,
        buffer_size,
        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -401,7 +406,7 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
 void Renderer::load_texture(const std::string& path)
 {
    try {
-      _texture = std::make_unique<vk::Texture>(_device.get(), path);
+      _texture = std::make_unique<vk::Texture>(&_device, path);
    }
    catch (const std::exception& e) {
       meddl::log::error("Failed to load texture: {}", e.what());

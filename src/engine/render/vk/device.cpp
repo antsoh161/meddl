@@ -2,84 +2,21 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include <algorithm>
+#include <expected>
 #include <vector>
 
 #include "engine/render/vk/instance.h"
 #include "engine/render/vk/physical_device.h"
-#include "engine/render/vk/surface.h"
 
 namespace meddl::render::vk {
 
-//! Device
-Device::Device(PhysicalDevice* physical_device,
-               const std::unordered_map<uint32_t, QueueConfiguration>& queue_configurations,
-               const std::unordered_set<std::string>& device_extensions,
-               const std::optional<VkPhysicalDeviceFeatures>& device_features,
-               const std::set<std::string>& validation_layers)
-    : _physical_device(physical_device)
+std::expected<Device, meddl::error::Error> Device::create(PhysicalDevice* physical_device,
+                                                          const DeviceConfiguration& config,
+                                                          const std::optional<Debugger>& debugger)
 {
-   std::vector<VkDeviceQueueCreateInfo> create_infos{};
+   Device device{};
+   device._physical_device = physical_device;
 
-   auto make_cinfo = [](uint32_t queue_family_index,
-                        const QueueConfiguration& configuration) -> VkDeviceQueueCreateInfo {
-      VkDeviceQueueCreateInfo queue_cinfo{};
-      queue_cinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      queue_cinfo.queueFamilyIndex = queue_family_index;
-      queue_cinfo.queueCount = configuration._queue_count;
-      queue_cinfo.pQueuePriorities = &configuration._priority;
-      return queue_cinfo;
-   };
-   for (const auto& config : queue_configurations) {
-      create_infos.push_back(make_cinfo(config.first, config.second));
-   }
-
-   VkDeviceCreateInfo create_info{};
-   create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-   create_info.queueCreateInfoCount = create_infos.size();
-   create_info.pQueueCreateInfos = create_infos.data();
-   create_info.pEnabledFeatures = device_features.has_value() ? &device_features.value() : nullptr;
-   create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
-
-   std::vector<const char*> extensions_cstyle{};
-   for (const auto& ext : device_extensions) {
-      extensions_cstyle.push_back(ext.c_str());
-   }
-   create_info.ppEnabledExtensionNames = extensions_cstyle.data();
-
-   std::vector<const char*> layers_cstyle{};
-   if (validation_layers.empty()) {
-      create_info.enabledLayerCount = validation_layers.size();
-      for (const auto& layer : validation_layers) {
-         layers_cstyle.push_back(layer.c_str());
-      }
-      create_info.ppEnabledLayerNames = layers_cstyle.data();
-   }
-   else {
-      create_info.enabledLayerCount = 0;
-      create_info.ppEnabledLayerNames = nullptr;
-   }
-
-   auto res = vkCreateDevice(_physical_device->vk(), &create_info, nullptr, &_device);
-   if (res != VK_SUCCESS) {
-      throw std::runtime_error{
-          std::format("vkCreateDevice failed with error: {}", static_cast<int32_t>(res))};
-   }
-
-   for (auto& config : queue_configurations) {
-      for (uint32_t i = 0; i < config.second._queue_count; i++) {
-         VkQueue queue{};
-         vkGetDeviceQueue(_device, config.first, i, &queue);
-         _queues.emplace_back(queue, i, config.second);
-      }
-   }
-}
-
-Device::Device(PhysicalDevice* physical_device,
-               const DeviceConfiguration& config,
-               const std::optional<Debugger>& debugger)
-    : _physical_device(physical_device)
-{
    std::vector<VkDeviceQueueCreateInfo> create_infos{};
 
    auto make_cinfo = [](uint32_t queue_family_index,
@@ -106,7 +43,7 @@ Device::Device(PhysicalDevice* physical_device,
       device_features = config.features.value();
    }
    else if (config.auto_enable_supported_features) {
-      device_features = _physical_device->get_features();
+      device_features = device._physical_device->get_features();
    }
    create_info.pEnabledFeatures = &device_features;
 
@@ -134,23 +71,31 @@ Device::Device(PhysicalDevice* physical_device,
       last_structure = structure;
    }
 
-   auto res =
-       vkCreateDevice(_physical_device->vk(), &create_info, config.custom_allocator, &_device);
+   auto res = vkCreateDevice(
+       device._physical_device->vk(), &create_info, config.custom_allocator, &device._device);
    if (res != VK_SUCCESS) {
-      throw std::runtime_error{
-          std::format("vkCreateDevice failed with error: {}", static_cast<int32_t>(res))};
+      return std::unexpected(
+          error::Error(std::format("vkCreateDevice failed: {}", static_cast<int32_t>(res))));
    }
 
-   _enabled_extensions = config.extensions;
-   _enabled_features = device_features;
+   device._enabled_extensions = config.extensions;
+   device._enabled_features = device_features;
 
    for (auto& config_pair : config.queue_configurations) {
       for (uint32_t i = 0; i < config_pair.second._queue_count; i++) {
          VkQueue queue{};
-         vkGetDeviceQueue(_device, config_pair.first, i, &queue);
-         _queues.emplace_back(queue, i, config_pair.second);
+         vkGetDeviceQueue(device._device, config_pair.first, i, &queue);
+         device._queues.emplace_back(queue, i, config_pair.second);
       }
    }
+   return device;
+}
+
+Device::Device(PhysicalDevice* physical_device,
+               const DeviceConfiguration& config,
+               const std::optional<Debugger>& debugger)
+    : _physical_device(physical_device)
+{
 }
 
 Device::~Device()
