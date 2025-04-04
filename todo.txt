@@ -1,6 +1,0 @@
-
-## Initial setup
-- Vulkan context?
-- Get renderer up
-  - Setup device management
-  - default createInfo's and maybe some non ugly builder

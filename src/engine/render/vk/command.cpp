@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include <exception>
 #include <expected>
 
 namespace meddl::render::vk {
