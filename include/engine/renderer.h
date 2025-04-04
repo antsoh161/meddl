@@ -87,7 +87,7 @@ class Renderer {
    Renderer& operator=(Renderer&&) = default;
 
    void set_view_matrix(const glm::mat4 view_matrix);
-   void set_vertices(const std::vector<engine::Vertex>& vertices);
+   void set_vertices(const std::vector<Vertex>& vertices);
    void set_indices(const std::vector<uint32_t>& indices);
    void draw_vertices(uint32_t vertex_count = 0);
    void draw();
