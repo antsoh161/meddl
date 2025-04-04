@@ -1,11 +1,12 @@
 CompileFlags:
     Add: [-xc++, -Wall, -std=c++23, -D__cpp_concepts=202002L]
-    Remove: [-W*, -m*, --sysroot]
+    Remove: [-W*, -m*, --sysroot, "-fconcepts-diagnostics-depth=10"]
     Compiler: g++
 Index:
     Background: Build
     StandardLibrary: Yes
 Diagnostics:
+    # Suppress: '*'
     UnusedIncludes: Strict
 Completion:
     AllScopes: Yes
