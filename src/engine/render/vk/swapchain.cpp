@@ -7,18 +7,23 @@
 #include <stdexcept>
 #include <vector>
 
+#include "core/error.h"
 #include "engine/render/vk/shared.h"
 #include "engine/render/vk/surface.h"
 
 namespace meddl::render::vk {
 
-Swapchain::Swapchain(Device* device,
-                     Surface* surface,
-                     const RenderPass* renderpass,
-                     const GraphicsConfiguration& config,
-                     const glfw::FrameBufferSize& fbs)
-    : _device(device), _surface(surface), _config(config)
+std::expected<Swapchain, error::Error> Swapchain::create(Device* device,
+                                                         Surface* surface,
+                                                         const RenderPass* renderpass,
+                                                         const GraphicsConfiguration& config,
+                                                         const glfw::FrameBufferSize& fbs)
 {
+   Swapchain swapchain;
+   swapchain._device = device;
+   swapchain._surface = surface;
+   swapchain._config = config;
+
    auto* physical = device->physical_device();
    auto caps = physical->capabilities(surface);
 
@@ -42,14 +47,14 @@ Swapchain::Swapchain(Device* device,
 
    // Set up image extent - we still need logic here for proper sizing
    if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-      _extent2d = caps.currentExtent;
+      swapchain._extent2d = caps.currentExtent;
    }
    else {
-      _extent2d = {
+      swapchain._extent2d = {
           .width = std::clamp(fbs.width, caps.minImageExtent.width, caps.maxImageExtent.width),
           .height = std::clamp(fbs.height, caps.minImageExtent.height, caps.maxImageExtent.height)};
    }
-   create_info.imageExtent = _extent2d;
+   create_info.imageExtent = swapchain._extent2d;
 
    // Set up image properties directly from config
    create_info.imageArrayLayers = config.framebuffer_config.layers;
@@ -79,24 +84,28 @@ Swapchain::Swapchain(Device* device,
    create_info.oldSwapchain = VK_NULL_HANDLE;
    create_info.pNext = nullptr;
 
-   auto res = vkCreateSwapchainKHR(
-       _device->vk(), &create_info, config.swapchain_config.custom_allocator, &_swapchain);
-   if (res != VK_SUCCESS) {
-      throw std::runtime_error{
-          std::format("Failed to create swapchain, error: {}", static_cast<int32_t>(res))};
+   auto result = vkCreateSwapchainKHR(swapchain._device->vk(),
+                                      &create_info,
+                                      config.swapchain_config.custom_allocator,
+                                      &swapchain._swapchain);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkCreateSwapchainKHR failed: {}", static_cast<int32_t>(result))));
    }
 
    // Get swapchain images
    uint32_t image_count{};
    std::vector<VkImage> swapchain_images{};
-   vkGetSwapchainImagesKHR(_device->vk(), _swapchain, &image_count, nullptr);
+   vkGetSwapchainImagesKHR(swapchain._device->vk(), swapchain._swapchain, &image_count, nullptr);
    swapchain_images.resize(image_count);
-   vkGetSwapchainImagesKHR(_device->vk(), _swapchain, &image_count, swapchain_images.data());
+   vkGetSwapchainImagesKHR(
+       swapchain._device->vk(), swapchain._swapchain, &image_count, swapchain_images.data());
    meddl::log::info("Swapchain image count: {}", image_count);
 
    for (const auto& attachment : config.shared.attachments) {
       if (attachment.is_depth_stencil) {
-         _depth_image = Image::create(device, attachment, _extent2d.width, _extent2d.height);
+         swapchain._depth_image = Image::create(
+             device, attachment, swapchain._extent2d.width, swapchain._extent2d.height);
       }
       else {
          if (attachment.format != create_info.imageFormat) {
@@ -104,47 +113,87 @@ Swapchain::Swapchain(Device* device,
          }
          for (auto& image : swapchain_images) {
             // swapchain_image_config.format = config.attachment_config.format;
-            _images.push_back(Image::create_deferred(image, device, attachment));
+            swapchain._images.push_back(Image::create_deferred(image, device, attachment));
          }
       }
    }
 
    // Create framebuffers
-   _framebuffers.resize(_images.size());
+   swapchain._framebuffers.resize(swapchain._images.size());
 
    VkFramebufferCreateInfo framebuffer_info{};
    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
    framebuffer_info.renderPass = renderpass->vk();
    framebuffer_info.attachmentCount =
        config.shared.get_attachment_descriptions().size();  // matches renderpass
-   framebuffer_info.width = _extent2d.width;
-   framebuffer_info.height = _extent2d.height;
+   framebuffer_info.width = swapchain._extent2d.width;
+   framebuffer_info.height = swapchain._extent2d.height;
    framebuffer_info.layers = config.framebuffer_config.layers;
 
-   bool has_depth = _depth_image.has_value();
+   bool has_depth = swapchain._depth_image.has_value();
    meddl::log::debug("Has depth? {}", has_depth);
-   for (size_t i = 0; i < _images.size(); i++) {
+   for (size_t i = 0; i < swapchain._images.size(); i++) {
       std::array<VkImageView, 2> attachments{};
 
       // Color attachment is always at index 0
-      attachments[0] = _images.at(i).view();
+      attachments[0] = swapchain._images.at(i).view();
 
       // Add depth attachment if we have one
       if (has_depth) {
-         attachments[1] = _depth_image->view();
+         attachments[1] = swapchain._depth_image->view();
       }
 
       framebuffer_info.pAttachments = attachments.data();
-      if (vkCreateFramebuffer(_device->vk(),
-                              &framebuffer_info,
-                              config.framebuffer_config.custom_allocator,
-                              &_framebuffers.at(i)) != VK_SUCCESS) {
-         throw std::runtime_error("Failed to create framebuffer");
+      result = vkCreateFramebuffer(swapchain._device->vk(),
+                                   &framebuffer_info,
+                                   config.framebuffer_config.custom_allocator,
+                                   &swapchain._framebuffers.at(i));
+      if (result != VK_SUCCESS) {
+         return std::unexpected(error::Error(
+             std::format("vkCreateFramebuffer failed: {}", static_cast<int32_t>(result))));
       }
    }
+   return swapchain;
 }
 
-Swapchain::~Swapchain()
+Swapchain::Swapchain(Swapchain&& other) noexcept
+    : _swapchain(other._swapchain),
+      _device(other._device),
+      _surface(other._surface),
+      _config(other._config),
+      _extent2d(other._extent2d),
+      _depth_image(std::move(other._depth_image)),
+      _images(std::move(other._images)),
+      _framebuffers(std::move(other._framebuffers))
+{
+   // Invalidate the source object without destroying resources
+   other._device = nullptr;
+   other._surface = nullptr;
+   other._swapchain = VK_NULL_HANDLE;
+   other._framebuffers.clear();
+}
+
+Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
+{
+   if (this != &other) {
+      _device = other._device;
+      _surface = other._surface;
+      _swapchain = other._swapchain;
+      _images = std::move(other._images);
+      _depth_image = std::move(other._depth_image);
+      _framebuffers = std::move(other._framebuffers);
+      _extent2d = other._extent2d;
+      _config = other._config;
+
+      other._device = nullptr;
+      other._surface = nullptr;
+      other._swapchain = VK_NULL_HANDLE;
+      other._framebuffers.clear();
+   }
+   return *this;
+}
+
+void Swapchain::deinit()
 {
    if (_swapchain) {
       _images.clear();
@@ -155,17 +204,20 @@ Swapchain::~Swapchain()
    }
 }
 
-std::unique_ptr<Swapchain> Swapchain::recreate(Device* device,
-                                               Surface* surface,
-                                               const RenderPass* renderpass,
-                                               const glfw::FrameBufferSize& fbs,
-                                               std::unique_ptr<Swapchain> old_swapchain)
+Swapchain::~Swapchain()
+{
+   deinit();
+}
+
+std::expected<Swapchain, error::Error> Swapchain::recreate(Device* device,
+                                                           Surface* surface,
+                                                           const RenderPass* renderpass,
+                                                           const glfw::FrameBufferSize& fbs,
+                                                           Swapchain& old_swapchain)
 {
    device->wait_idle();
-   if (old_swapchain) {
-      old_swapchain.reset();
-   }
-   return std::make_unique<Swapchain>(device, surface, renderpass, old_swapchain->config(), fbs);
+   old_swapchain.deinit();
+   return Swapchain::create(device, surface, renderpass, old_swapchain.config(), fbs);
 }
 
 // std::vector<VkImageView>& Swapchain::get_image_views()

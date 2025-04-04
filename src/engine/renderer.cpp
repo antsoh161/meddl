@@ -42,7 +42,7 @@ Renderer RendererBuilder::make_glfw_vulkan()
    }
 
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
    auto window =
        std::make_shared<glfw::Window>(_config.window_width, _config.window_height, _config.title);
@@ -93,9 +93,14 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    }
    _renderpass = std::move(renderpass.value());
 
-   _swapchain = std::make_unique<vk::Swapchain>(
+   auto swapchain = vk::Swapchain::create(
        &_device, &_surface, &_renderpass, graphics_conf, _window->get_framebuffer_size());
-   //
+
+   if (!swapchain) {
+      throw std::runtime_error(
+          std::format("Swapchain error: {}", swapchain.error().full_message()));
+   }
+   _swapchain = std::move(swapchain.value());
    auto vert = engine::loader::load_shader(std::filesystem::current_path() / "shader.vert", "main");
    _vert_spirv = vert.value().spirv_code;
 
@@ -155,23 +160,26 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _instance.log_device_info(&_surface);
 }
 
-void Renderer::draw()
+void Renderer::draw(bool recreate_swapchain)
 {
    _fences.at(_current_frame).wait(&_device);
    uint32_t image_index{};
    const auto result = vkAcquireNextImageKHR(_device.vk(),
-                                             _swapchain->vk(),
+                                             _swapchain.vk(),
                                              std::numeric_limits<uint64_t>::max(),
                                              _image_available.at(_current_frame).vk(),
                                              VK_NULL_HANDLE,
                                              &image_index);
 
-   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      _swapchain = vk::Swapchain::recreate(&_device,
-                                           &_surface,
-                                           &_renderpass,
-                                           _window->get_framebuffer_size(),
-                                           std::move(_swapchain));
+   if (result == VK_ERROR_OUT_OF_DATE_KHR || recreate_swapchain) {
+      auto swapchain = vk::Swapchain::recreate(
+          &_device, &_surface, &_renderpass, _window->get_framebuffer_size(), _swapchain);
+      if (!swapchain) {
+         meddl::log::error("{}", swapchain.error().full_message());
+         return;
+      }
+      _swapchain = std::move(swapchain.value());
+      meddl::log::debug("Successful swapchain receation");
       return;
    }
    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -188,14 +196,13 @@ void Renderer::draw()
    _instance.debugger()->begin_region(
        &_command_buffers.at(_current_frame), "Frame Rendering", DEBUG_COLOR);
    _command_buffers.at(_current_frame)
-       .begin_renderpass(
-           &_renderpass, _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
+       .begin_renderpass(&_renderpass, &_swapchain, _swapchain.get_framebuffers()[image_index]);
 
    VkViewport viewport = {
        .x = 0.0f,
        .y = 0.0f,
-       .width = static_cast<float>(_swapchain->extent().width),
-       .height = static_cast<float>(_swapchain->extent().height),
+       .width = static_cast<float>(_swapchain.extent().width),
+       .height = static_cast<float>(_swapchain.extent().height),
        .minDepth = 0.0f,
        .maxDepth = 1.0f,
    };
@@ -204,7 +211,7 @@ void Renderer::draw()
 
    VkRect2D scissor = {
        .offset = {0, 0},
-       .extent = _swapchain->extent(),
+       .extent = _swapchain.extent(),
    };
    _command_buffers.at(_current_frame).set_scissor(scissor);
    _command_buffers.at(_current_frame).bind_pipeline(&_graphics_pipeline);
@@ -260,7 +267,7 @@ void Renderer::draw()
    present_info.waitSemaphoreCount = 1;
    present_info.pWaitSemaphores = signal_semaphores.data();
 
-   std::array<VkSwapchainKHR, 1> swapchains = {_swapchain->vk()};
+   std::array<VkSwapchainKHR, 1> swapchains = {_swapchain.vk()};
    present_info.swapchainCount = 1;
    present_info.pSwapchains = swapchains.data();
    present_info.pImageIndices = &image_index;
@@ -271,11 +278,15 @@ void Renderer::draw()
        _window->is_resized()) {
       _window->reset_resized();
 
-      _swapchain = vk::Swapchain::recreate(&_device,
-                                           &_surface,
-                                           &_renderpass,
-                                           _window->get_framebuffer_size(),
-                                           std::move(_swapchain));
+      auto swapchain = vk::Swapchain::recreate(
+          &_device, &_surface, &_renderpass, _window->get_framebuffer_size(), _swapchain);
+
+      if (swapchain) {
+         _swapchain = std::move(swapchain.value());
+      }
+      else {
+         meddl::log::error("{}", swapchain.error().full_message());
+      }
    }
    else if (result2 != VK_SUCCESS) {
       throw std::runtime_error("Failed to present swapchain image");
@@ -392,8 +403,8 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    TransformUBO ubo{};
    ubo.model = glm::mat4(1.0f);
 
-   const auto aspect = static_cast<float>(_swapchain->extent().width) /
-                       static_cast<float>(_swapchain->extent().height);
+   const auto aspect = static_cast<float>(_swapchain.extent().width) /
+                       static_cast<float>(_swapchain.extent().height);
 
    constexpr float FOV_DEGREES = 45.0f;
    constexpr float NEAR_PLANE = 0.01f;

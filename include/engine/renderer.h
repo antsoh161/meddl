@@ -90,7 +90,7 @@ class Renderer {
    void set_vertices(const std::vector<Vertex>& vertices);
    void set_indices(const std::vector<uint32_t>& indices);
    void draw_vertices(uint32_t vertex_count = 0);
-   void draw();
+   void draw(bool recreate_swapchain = false);
 
    void load_texture(const std::string& path);
 
@@ -105,7 +105,7 @@ class Renderer {
    vk::Device _device{};
 
    // Graphics
-   std::unique_ptr<vk::Swapchain> _swapchain{};
+   vk::Swapchain _swapchain{};
    vk::PipelineLayout _pipeline_layout{};
    vk::RenderPass _renderpass{};
    vk::GraphicsPipeline _graphics_pipeline{};

@@ -3,6 +3,7 @@
 #include <unordered_set>
 
 #include "GLFW/glfw3.h"
+#include "core/error.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/hash.hpp"
 #include "engine/render/vk/image.h"
@@ -14,45 +15,43 @@ namespace meddl::render::vk {
 
 class Swapchain {
   public:
-   Swapchain() = delete;
-   // Swapchain(Device* device,
-   //           Surface* surface,
-   //           const RenderPass* renderpass,
-   //           const SwapchainOptions& options,
-   //           const glfw::FrameBufferSize& fbs);
-   Swapchain(Device* device,
-             Surface* surface,
-             const RenderPass* renderpass,
-             const GraphicsConfiguration& config,
-             const glfw::FrameBufferSize& fbs);
+   Swapchain() = default;
+   static std::expected<Swapchain, error::Error> create(Device* device,
+                                                        Surface* surface,
+                                                        const RenderPass* renderpass,
+                                                        const GraphicsConfiguration& config,
+                                                        const glfw::FrameBufferSize& fbs);
    ~Swapchain();
 
    Swapchain(const Swapchain&) = delete;
    Swapchain& operator=(const Swapchain&) = delete;
-   Swapchain(Swapchain&&) = default;
-   Swapchain& operator=(Swapchain&&) = default;
+   Swapchain(Swapchain&&) noexcept;
+   Swapchain& operator=(Swapchain&&) noexcept;
 
    // [[nodiscard]] std::vector<VkImageView>& get_image_views();
 
    [[nodiscard]] VkExtent2D extent() const { return _extent2d; }
    [[nodiscard]] VkSwapchainKHR vk() const { return _swapchain; }
-   [[nodiscard]] const GraphicsConfiguration& config() { return _config; }
+   [[nodiscard]] const GraphicsConfiguration& config() const { return _config; }
 
    [[nodiscard]] const std::vector<VkFramebuffer>& get_framebuffers() const
    {
       return _framebuffers;
    }
 
-   static std::unique_ptr<Swapchain> recreate(Device* device,
-                                              Surface* surface,
-                                              const RenderPass* renderpass,
-                                              const glfw::FrameBufferSize& fbs,
-                                              std::unique_ptr<Swapchain> old_swapchain);
+   static std::expected<Swapchain, error::Error> recreate(Device* device,
+                                                          Surface* surface,
+                                                          const RenderPass* renderpass,
+                                                          const glfw::FrameBufferSize& fbs,
+                                                          Swapchain& old_swapchain);
 
   private:
+   //! Swapchain needs to be manually destroyed on recreation, so allow this here
+   void deinit();
+
    VkSwapchainKHR _swapchain{VK_NULL_HANDLE};
-   Device* _device;
-   Surface* _surface;
+   Device* _device{nullptr};
+   Surface* _surface{nullptr};
    GraphicsConfiguration _config;
 
    VkExtent2D _extent2d{};
