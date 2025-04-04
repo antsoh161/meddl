@@ -71,25 +71,28 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    vk::DevicePicker picker(&_instance, &_surface);
    auto picked = picker.pick_best(vk::DevicePickerStrategy::HighPerformance);
 
-   // _device = std::make_unique<vk::Device>(
-   //     picked.value().best_Device, picked.value().config, _instance.debugger());
-
    auto device =
        vk::Device::create(picked.value().best_Device, picked.value().config, _instance.debugger());
    if (!device) {
       throw std::runtime_error(std::format("Device error: {}", device.error().full_message()));
    }
    _device = std::move(device.value());
+
    auto graphics_conf = vk::presets::forward_rendering();
    auto validator = vk::ConfigValidator(_device.physical_device(), &_surface);
 
    validator.validate_surface_format(graphics_conf);
    validator.validate_renderpass(graphics_conf);
 
-   _renderpass = std::make_unique<vk::RenderPass>(&_device, graphics_conf);
+   auto renderpass = vk::RenderPass::create(&_device, graphics_conf);
+   if (!renderpass) {
+      throw std::runtime_error(
+          std::format("Renderpass error: {}", renderpass.error().full_message()));
+   }
+   _renderpass = std::move(renderpass.value());
 
    _swapchain = std::make_unique<vk::Swapchain>(
-       &_device, &_surface, _renderpass.get(), graphics_conf, _window->get_framebuffer_size());
+       &_device, &_surface, &_renderpass, graphics_conf, _window->get_framebuffer_size());
    //
    auto vert = engine::loader::load_shader(std::filesystem::current_path() / "shader.vert", "main");
    _vert_spirv = vert.value().spirv_code;
@@ -114,7 +117,7 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
                                                                _frag_mod.get(),
                                                                &_device,
                                                                _pipeline_layout.get(),
-                                                               _renderpass.get(),
+                                                               &_renderpass,
                                                                bdesc,
                                                                vattr);
    //
@@ -158,7 +161,7 @@ void Renderer::draw()
    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
       _swapchain = vk::Swapchain::recreate(&_device,
                                            &_surface,
-                                           _renderpass.get(),
+                                           &_renderpass,
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
       return;
@@ -178,7 +181,7 @@ void Renderer::draw()
        &_command_buffers.at(_current_frame), "Frame Rendering", DEBUG_COLOR);
    _command_buffers.at(_current_frame)
        .begin_renderpass(
-           _renderpass.get(), _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
+           &_renderpass, _swapchain.get(), _swapchain->get_framebuffers()[image_index]);
 
    VkViewport viewport = {
        .x = 0.0f,
@@ -262,7 +265,7 @@ void Renderer::draw()
 
       _swapchain = vk::Swapchain::recreate(&_device,
                                            &_surface,
-                                           _renderpass.get(),
+                                           &_renderpass,
                                            _window->get_framebuffer_size(),
                                            std::move(_swapchain));
    }
