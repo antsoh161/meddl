@@ -3,11 +3,12 @@
 #include <array>
 #include <memory>
 
+#include "core/error.h"
 #include "engine/render/vk/descriptor.h"
 
 namespace meddl::render::vk {
 
-GraphicsPipeline::GraphicsPipeline(
+std::expected<GraphicsPipeline, error::Error> GraphicsPipeline::create(
     ShaderModule* vert_shader,
     ShaderModule* frag_shader,
     Device* device,
@@ -15,8 +16,11 @@ GraphicsPipeline::GraphicsPipeline(
     RenderPass* render_pass,
     VkVertexInputBindingDescription binding_description,
     const std::array<VkVertexInputAttributeDescription, 4>& attribute_description)
-    : _layout(layout), _device(device)
 {
+   GraphicsPipeline pipeline;
+   pipeline._device = device;
+   pipeline._layout = layout;
+
    VkPipelineShaderStageCreateInfo vert_info{};
    vert_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
    vert_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -114,17 +118,48 @@ GraphicsPipeline::GraphicsPipeline(
    pipeline_info.pColorBlendState = &color_blending;
    pipeline_info.pDynamicState = &dynamic_state;
    pipeline_info.pDepthStencilState = &depth_stencil;
-   pipeline_info.layout = *_layout;
+   pipeline_info.layout = *pipeline._layout;
    pipeline_info.renderPass = render_pass->vk();
    pipeline_info.subpass = 0;
    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-   auto res = vkCreateGraphicsPipelines(
-       *_device, VK_NULL_HANDLE, 1, &pipeline_info, _device->get_allocators(), &_pipeline);
-   if (res != VK_SUCCESS) {
-      throw std::runtime_error{
-          std::format("Failed to create graphics pipeline, error: {}", static_cast<int32_t>(res))};
+   auto result = vkCreateGraphicsPipelines(pipeline._device->vk(),
+                                           VK_NULL_HANDLE,
+                                           1,
+                                           &pipeline_info,
+                                           pipeline._device->get_allocators(),
+                                           &pipeline._pipeline);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkCreateGraphicsPipelines failed: {}", static_cast<int32_t>(result))));
    }
+
+   return pipeline;
+}
+
+GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& other) noexcept
+    : _layout(other._layout), _device(other._device), _pipeline(other._pipeline)
+{
+   other._device = nullptr;
+   other._layout = nullptr;
+   other._pipeline = VK_NULL_HANDLE;
+}
+
+GraphicsPipeline& GraphicsPipeline::operator=(GraphicsPipeline&& other) noexcept
+{
+   if (this != &other) {
+      if (_pipeline && _device) {
+         vkDestroyPipeline(*_device, _pipeline, _device->get_allocators());
+      }
+      _device = other._device;
+      _layout = other._layout;
+      _pipeline = other._pipeline;
+
+      other._device = nullptr;
+      other._layout = nullptr;
+      other._pipeline = VK_NULL_HANDLE;
+   }
+   return *this;
 }
 
 GraphicsPipeline::~GraphicsPipeline()
@@ -134,11 +169,12 @@ GraphicsPipeline::~GraphicsPipeline()
    }
 }
 
-PipelineLayout::PipelineLayout(Device* device,
-                               const DescriptorSetLayout* dsl,
-                               VkPipelineLayoutCreateFlags flags)
-    : _device(device)
+std::expected<PipelineLayout, error::Error> PipelineLayout::create(
+    Device* device, const DescriptorSetLayout* dsl, VkPipelineLayoutCreateFlags flags)
 {
+   PipelineLayout layout;
+   layout._device = device;
+
    // TODO: Layouts, push constant ranges
    VkPipelineLayoutCreateInfo create_info{};
    create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -147,10 +183,34 @@ PipelineLayout::PipelineLayout(Device* device,
    create_info.setLayoutCount = 1;
    create_info.pushConstantRangeCount = 0;
 
-   if (vkCreatePipelineLayout(device->vk(), &create_info, device->get_allocators(), &_layout) !=
-       VK_SUCCESS) {
-      throw std::runtime_error("failed to create pipeline layout!");
+   auto result = vkCreatePipelineLayout(
+       device->vk(), &create_info, device->get_allocators(), &layout._layout);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkCreatePipelineLayout failed: {}", static_cast<int32_t>(result))));
    }
+   return layout;
+}
+PipelineLayout::PipelineLayout(PipelineLayout&& other) noexcept
+    : _device(other._device), _layout(other._layout)
+{
+   other._device = nullptr;
+   other._layout = VK_NULL_HANDLE;
+}
+
+PipelineLayout& PipelineLayout::operator=(PipelineLayout&& other) noexcept
+{
+   if (this != &other) {
+      if (_layout && _device) {
+         vkDestroyPipelineLayout(*_device, _layout, _device->get_allocators());
+      }
+      _device = other._device;
+      _layout = other._layout;
+
+      other._device = nullptr;
+      other._layout = VK_NULL_HANDLE;
+   }
+   return *this;
 }
 
 PipelineLayout::~PipelineLayout()

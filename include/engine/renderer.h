@@ -106,9 +106,9 @@ class Renderer {
 
    // Graphics
    std::unique_ptr<vk::Swapchain> _swapchain{};
-   std::unique_ptr<vk::PipelineLayout> _pipeline_layout{};
+   vk::PipelineLayout _pipeline_layout{};
    vk::RenderPass _renderpass{};
-   std::unique_ptr<vk::GraphicsPipeline> _graphics_pipeline{};
+   vk::GraphicsPipeline _graphics_pipeline{};
    std::unique_ptr<vk::CommandPool> _command_pool{};
    std::vector<vk::CommandBuffer> _command_buffers{};
    std::unique_ptr<vk::Buffer> _vertex_buffer{};

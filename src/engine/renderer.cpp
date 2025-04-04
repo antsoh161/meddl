@@ -1,6 +1,7 @@
 
 #include "engine/renderer.h"
 
+#include <unistd.h>
 #include <vulkan/vulkan_core.h>
 
 #include <algorithm>
@@ -20,6 +21,7 @@
 #include "engine/render/vk/descriptor.h"
 #include "engine/render/vk/device.h"
 #include "engine/render/vk/instance.h"
+#include "engine/render/vk/pipeline.h"
 #include "engine/render/vk/renderpass.h"
 #include "engine/render/vk/shared.h"
 #include "engine/shader.h"
@@ -112,14 +114,20 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
    _descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(
        &_device, graphics_conf.descriptor_layouts.ubo_sampler);
 
-   _pipeline_layout = std::make_unique<vk::PipelineLayout>(&_device, _descriptor_set_layout.get());
-   _graphics_pipeline = std::make_unique<vk::GraphicsPipeline>(_vert_mod.get(),
-                                                               _frag_mod.get(),
-                                                               &_device,
-                                                               _pipeline_layout.get(),
-                                                               &_renderpass,
-                                                               bdesc,
-                                                               vattr);
+   auto pipeline_layout = vk::PipelineLayout::create(&_device, _descriptor_set_layout.get());
+   if (!pipeline_layout) {
+      throw std::runtime_error(
+          std::format("Pipeline layout error: {}", pipeline_layout.error().full_message()));
+   }
+   _pipeline_layout = std::move(pipeline_layout.value());
+
+   auto graphics_pipeline = vk::GraphicsPipeline::create(
+       _vert_mod.get(), _frag_mod.get(), &_device, &_pipeline_layout, &_renderpass, bdesc, vattr);
+   if (!graphics_pipeline) {
+      throw std::runtime_error(
+          std::format("Graphics pipeline error: {}", graphics_pipeline.error().full_message()));
+   }
+   _graphics_pipeline = std::move(graphics_pipeline.value());
    //
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
    _command_pool = std::make_unique<vk::CommandPool>(
@@ -199,11 +207,11 @@ void Renderer::draw()
        .extent = _swapchain->extent(),
    };
    _command_buffers.at(_current_frame).set_scissor(scissor);
-   _command_buffers.at(_current_frame).bind_pipeline(_graphics_pipeline.get());
+   _command_buffers.at(_current_frame).bind_pipeline(&_graphics_pipeline);
 
    vkCmdBindDescriptorSets(_command_buffers.at(_current_frame).vk(),
                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                           _pipeline_layout->vk(),
+                           _pipeline_layout.vk(),
                            0,
                            1,
                            _descriptor_sets.at(_current_frame).vk_ptr(),
