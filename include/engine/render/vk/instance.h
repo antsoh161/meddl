@@ -41,7 +41,7 @@ class PhysicalDevice;
 class Instance {
   public:
    Instance() = default;
-   std::expected<Instance, meddl::error::Error> static create(
+   static std::expected<Instance, meddl::error::Error> create(
        const InstanceConfiguration& config,
        const std::optional<DebugConfiguration>& debug_config = std::nullopt);
    ~Instance();
