@@ -6,8 +6,12 @@
 
 namespace meddl::render::vk {
 
-RenderPass::RenderPass(Device* device, const GraphicsConfiguration& config) : _device(device)
+std::expected<RenderPass, error::Error> RenderPass::create(Device* device,
+                                                           const GraphicsConfiguration& config)
 {
+   RenderPass pass;
+   pass._device = device;
+
    std::vector<VkAttachmentDescription> attachments = config.shared.get_attachment_descriptions();
    std::vector<VkSubpassDescription> subpasses = config.renderpass_config.subpasses;
    std::vector<VkSubpassDependency> dependencies = config.renderpass_config.dependencies;
@@ -22,11 +26,6 @@ RenderPass::RenderPass(Device* device, const GraphicsConfiguration& config) : _d
    renderpass_info.dependencyCount = static_cast<uint32_t>(dependencies.size());
    renderpass_info.pDependencies = dependencies.empty() ? nullptr : dependencies.data();
 
-   for (const auto& subpass : subpasses) {
-      meddl::log::info("in constructor: subpass pAttahcment color size {}, layout: {}",
-                       static_cast<int32_t>(subpass.colorAttachmentCount),
-                       static_cast<int32_t>(subpass.pColorAttachments->layout));
-   }
    void* pNext = nullptr;
    for (const auto& [type, ptr] : config.renderpass_config.extension_chain) {
       if (pNext == nullptr) {
@@ -38,16 +37,41 @@ RenderPass::RenderPass(Device* device, const GraphicsConfiguration& config) : _d
       pNext = ptr;
    }
 
-   if (vkCreateRenderPass(
-           *_device, &renderpass_info, config.renderpass_config.custom_allocator, &_render_pass) !=
-       VK_SUCCESS) {
-      throw std::runtime_error("Failed to create render pass!");
+   auto result = vkCreateRenderPass(*pass._device,
+                                    &renderpass_info,
+                                    config.renderpass_config.custom_allocator,
+                                    &pass._render_pass);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(
+          error::Error(std::format("vkCreateRenderPass failed: {}", static_cast<int32_t>(result))));
    }
+   return pass;
+}
+
+RenderPass::RenderPass(RenderPass&& other) noexcept
+    : _render_pass(other._render_pass), _device(other._device)
+{
+   other._device = nullptr;
+   other._render_pass = VK_NULL_HANDLE;
+}
+
+RenderPass& RenderPass::operator=(RenderPass&& other) noexcept
+{
+   if (this != &other) {
+      if (_render_pass && _device) {
+         vkDestroyRenderPass(_device->vk(), _render_pass, nullptr);
+      }
+      _device = other._device;
+      _render_pass = other._render_pass;
+      other._device = nullptr;
+      other._render_pass = VK_NULL_HANDLE;
+   }
+   return *this;
 }
 
 RenderPass::~RenderPass()
 {
-   if (_render_pass) {
+   if (_render_pass && _device) {
       vkDestroyRenderPass(_device->vk(), _render_pass, nullptr);
    }
 }
