@@ -14,9 +14,11 @@
 #include <stdexcept>
 #include <utility>
 
+#include "GLFW/glfw3.h"
 #include "core/log.h"
 #include "engine/gpu_types.h"
 #include "engine/render/vk/buffer.h"
+#include "engine/render/vk/command.h"
 #include "engine/render/vk/config.h"
 #include "engine/render/vk/descriptor.h"
 #include "engine/render/vk/device.h"
@@ -42,7 +44,7 @@ Renderer RendererBuilder::make_glfw_vulkan()
    }
 
    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
    auto window =
        std::make_shared<glfw::Window>(_config.window_width, _config.window_height, _config.title);
@@ -133,13 +135,23 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
           std::format("Graphics pipeline error: {}", graphics_pipeline.error().full_message()));
    }
    _graphics_pipeline = std::move(graphics_pipeline.value());
-   //
    // TODO: 0 is not always the correct index, save somewhere to fetch for the commandpool
-   _command_pool = std::make_unique<vk::CommandPool>(
-       &_device, 0, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+   auto graphics_queue = _device.physical_device()->get_queue_family(VK_QUEUE_GRAPHICS_BIT);
+   auto pool = vk::CommandPool::create(
+       &_device, graphics_queue.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+   if (!pool) {
+      throw std::runtime_error(std::format("Command pool error: {}", pool.error().full_message()));
+   }
+   _command_pool = std::move(pool.value());
 
    std::ranges::for_each(std::views::iota(0u, MAX_FRAMES_IN_FLIGHT), [this, graphics_conf](auto) {
-      _command_buffers.emplace_back(&_device, _command_pool.get());
+      auto cmd_buf = vk::CommandBuffer::create(&_device, &_command_pool);
+      if (!cmd_buf) {
+         throw std::runtime_error(
+             std::format("Command buffer error: {}", cmd_buf.error().full_message()));
+      }
+      _command_buffers.emplace_back(std::move(cmd_buf.value()));
       _image_available.emplace_back(&_device);
       _render_finished.emplace_back(&_device);
       auto& buffer = _uniform_buffers.emplace_back(
@@ -158,6 +170,10 @@ Renderer::Renderer(std::shared_ptr<glfw::Window> window) : _window(std::move(win
       _descriptor_sets.back().update(0, buffer.vk(), 0, sizeof(TransformUBO));
    });
    _instance.log_device_info(&_surface);
+   auto sampler = vk::Sampler::create(&_device, vk::Sampler::Cfg{});
+   if (!sampler) {
+      meddl::log::error("{}", sampler.error().full_message());
+   }
 }
 
 void Renderer::draw(bool recreate_swapchain)
@@ -321,6 +337,19 @@ void Renderer::set_indices(const std::vector<uint32_t>& indices)
    _index_buffer->copy_from(staging_buffer.get(), buffer_size);
    _index_count = static_cast<uint32_t>(indices.size());
 }
+void Renderer::set_textures(const ModelData& data)
+{
+   meddl::log::debug("Setting this many textures: {}", data.textures.size());
+   for (const auto& [name, texture_data] : data.textures) {
+      auto texture = vk::Texture::create(&_device, texture_data);
+      if (!texture) {
+         meddl::log::warn("Texture {} failed: {}", name, texture.error().full_message());
+         continue;
+      }
+      _textures.emplace_back(std::move(texture.value()));
+      meddl::log::debug("Created texture: {}", name);
+   }
+}
 
 void Renderer::set_view_matrix(const glm::mat4 view_matrix)
 {
@@ -423,16 +452,6 @@ void Renderer::update_uniform_buffer(uint32_t current_image)
    }
 
    std::memcpy(_uniform_buffers.at(current_image).mapped_data(), &ubo, sizeof(ubo));
-}
-
-void Renderer::load_texture(const std::string& path)
-{
-   try {
-      _texture = std::make_unique<vk::Texture>(&_device, path);
-   }
-   catch (const std::exception& e) {
-      meddl::log::error("Failed to load texture: {}", e.what());
-   }
 }
 
 }  // namespace meddl::render

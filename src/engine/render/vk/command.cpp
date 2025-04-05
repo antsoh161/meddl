@@ -6,21 +6,70 @@
 
 namespace meddl::render::vk {
 
-//! Command Pool
-CommandPool::CommandPool(Device* device,
-                         uint32_t queue_family_index,
-                         VkCommandPoolCreateFlags flags)
-    : _device(device)
+std::expected<CommandPool, error::Error> CommandPool::create(Device* device,
+                                                             uint32_t queue_family_index,
+                                                             VkCommandPoolCreateFlags flags)
 {
+   CommandPool pool;
+   pool._device = device;
    VkCommandPoolCreateInfo create_info{};
    create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
    create_info.queueFamilyIndex = queue_family_index;
    create_info.flags = flags;
 
-   if (vkCreateCommandPool(*device, &create_info, device->get_allocators(), &_command_pool) !=
-       VK_SUCCESS) {
-      throw std::runtime_error("failed to create command pool");
+   auto result = vkCreateCommandPool(
+       pool._device->vk(), &create_info, pool._device->get_allocators(), &pool._command_pool);
+
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkCreateCommandPool failed: {}", static_cast<int32_t>(result))));
    }
+   return pool;
+}
+
+CommandPool::CommandPool(CommandPool&& other) noexcept
+    : _command_pool(other._command_pool), _device(other._device)
+{
+   other._command_pool = VK_NULL_HANDLE;
+   other._device = nullptr;
+}
+
+CommandPool& CommandPool::operator=(CommandPool&& other) noexcept
+{
+   if (this != &other) {
+      _device = other._device;
+      _command_pool = other._command_pool;
+      other._command_pool = VK_NULL_HANDLE;
+      other._device = nullptr;
+   }
+   return *this;
+}
+
+CommandPool::~CommandPool()
+{
+   if (_command_pool) {
+      vkDestroyCommandPool(*_device, _command_pool, _device->get_allocators());
+   }
+}
+
+std::expected<CommandBuffer, error::Error> CommandBuffer::create(
+    Device* device, CommandPool* pool, const CommandBufferOptions& options)
+{
+   CommandBuffer buffer;
+   buffer._device = device;
+   buffer._pool = pool;
+   VkCommandBufferAllocateInfo alloc_info{};
+   alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+   alloc_info.commandPool = pool->vk();
+   alloc_info.level = options.level;
+   alloc_info.commandBufferCount = options.buffer_count;  // TODO: Configurable?
+
+   auto result = vkAllocateCommandBuffers(*device, &alloc_info, &buffer._command_buffer);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkAllocateCommandBuffers failed: {}", static_cast<int32_t>(result))));
+   }
+   return buffer;
 }
 
 CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
@@ -38,10 +87,6 @@ CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
 CommandBuffer& CommandBuffer::operator=(CommandBuffer&& other) noexcept
 {
    if (this != &other) {
-      if (_command_buffer != VK_NULL_HANDLE) {
-         vkFreeCommandBuffers(_device->vk(), _pool->vk(), 1, &_command_buffer);
-      }
-
       _device = other._device;
       _pool = other._pool;
       _command_buffer = other._command_buffer;
@@ -55,28 +100,6 @@ CommandBuffer& CommandBuffer::operator=(CommandBuffer&& other) noexcept
    return *this;
 }
 
-CommandPool::~CommandPool()
-{
-   if (_command_pool) {
-      vkDestroyCommandPool(*_device, _command_pool, _device->get_allocators());
-   }
-}
-
-//! CommandBuffer
-CommandBuffer::CommandBuffer(Device* device, CommandPool* pool, const CommandBufferOptions& options)
-    : _device(device), _pool(pool)
-{
-   VkCommandBufferAllocateInfo alloc_info{};
-   alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-   alloc_info.commandPool = pool->vk();
-   alloc_info.level = options.level;
-   alloc_info.commandBufferCount = options.buffer_count;  // TODO: Configurable?
-
-   if (vkAllocateCommandBuffers(*device, &alloc_info, &_command_buffer) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate command buffer");
-   }
-}
-
 CommandBuffer::~CommandBuffer()
 {
    if (_command_buffer) {
@@ -84,38 +107,10 @@ CommandBuffer::~CommandBuffer()
    }
 }
 
-CommandBuffer CommandBuffer::begin_one_time_submit(Device* device, CommandPool* pool)
-{
-   CommandBuffer cmd_buffer(device, pool);
-
-   VkCommandBufferBeginInfo beginInfo{};
-   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-   vkBeginCommandBuffer(cmd_buffer._command_buffer, &beginInfo);
-
-   return cmd_buffer;
-}
-
-void CommandBuffer::end_one_time_submit(Device* device, CommandBuffer* cmd_buffer)
-{
-   vkEndCommandBuffer(cmd_buffer->vk());
-
-   VkSubmitInfo submitInfo{};
-   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-   submitInfo.commandBufferCount = 1;
-   submitInfo.pCommandBuffers = &cmd_buffer->_command_buffer;
-
-   // Use the first queue for now - could make this configurable
-   vkQueueSubmit(device->queues().at(0).vk(), 1, &submitInfo, VK_NULL_HANDLE);
-   vkQueueWaitIdle(device->queues().at(0).vk());
-}
-
-std::expected<void, CommandError> CommandBuffer::begin(VkCommandBufferUsageFlags flags)
+std::expected<void, error::Error> CommandBuffer::begin(VkCommandBufferUsageFlags flags)
 {
    if (_state != State::Ready) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotReady,
-                                                     "Commandbuffer state is not ready"));
+      return std::unexpected(error::Error("Commandbuffer state is not ready"));
    }
    VkCommandBufferBeginInfo begin_info{};
    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -123,53 +118,53 @@ std::expected<void, CommandError> CommandBuffer::begin(VkCommandBufferUsageFlags
    begin_info.pInheritanceInfo = nullptr;
    begin_info.pNext = nullptr;
 
-   if (vkBeginCommandBuffer(_command_buffer, &begin_info) != VK_SUCCESS) {
-      throw std::runtime_error("failed to begin recording command buffer");
+   auto result = vkBeginCommandBuffer(_command_buffer, &begin_info);
+   if (result != VK_SUCCESS) {
+      return std::unexpected(error::Error(
+          std::format("vkBeginCommandBuffer failed: {}", static_cast<int32_t>(result))));
    }
    _state = State::Recording;
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::end()
+std::expected<void, error::Error> CommandBuffer::end()
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
    auto res = vkEndCommandBuffer(_command_buffer);
    if (res != VK_SUCCESS) {
-      return std::unexpected(CommandError::from_result(res, "Commandbuffer end"));
+      return std::unexpected(
+          error::Error(std::format("vkEndCommandBuffer failed: {}", static_cast<int32_t>(res))));
    }
    _state = State::Executable;
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::reset(VkCommandBufferResetFlags flags)
+std::expected<void, error::Error> CommandBuffer::reset(VkCommandBufferResetFlags flags)
 {
    if (_state != State::Executable) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotExecutable,
-                                                     "Commandbuffer state is not executable"));
+      return std::unexpected(error::Error("Commandbuffer state is not executable"));
    }
    auto res = vkResetCommandBuffer(_command_buffer, flags);
    if (res != VK_SUCCESS) {
-      return std::unexpected(CommandError::from_result(res, "Commandbuffer reset"));
+      return std::unexpected(
+          error::Error(std::format("vkResetCommandBuffer failed: {}", static_cast<int32_t>(res))));
    }
    _state = State::Ready;
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::begin_renderpass(const RenderPass* renderpass,
+std::expected<void, error::Error> CommandBuffer::begin_renderpass(const RenderPass* renderpass,
                                                                   const Swapchain* swapchain,
                                                                   VkFramebuffer framebuffer)
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
    std::array<VkClearValue, 2> clear_values = {
        VkClearValue{.color = {{0.2f, 0.2f, 0.2f, 1.0f}}},  // Color clear value (RGBA)
-       VkClearValue{.depthStencil = {1.0f, 0}}  // Depth clear value (depth=1.0, stencil=0)
-   };
+       VkClearValue{.depthStencil = {.depth = 1.0f, .stencil = 0}}};
 
    VkRenderPassBeginInfo begin_info{};
    begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -180,62 +175,93 @@ std::expected<void, CommandError> CommandBuffer::begin_renderpass(const RenderPa
    begin_info.clearValueCount = clear_values.size();
    begin_info.pClearValues = clear_values.data();
 
-   // TODO: error?
    vkCmdBeginRenderPass(_command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::bind_pipeline(const GraphicsPipeline* pipeline)
+std::expected<void, error::Error> CommandBuffer::bind_pipeline(const GraphicsPipeline* pipeline)
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
-   // TODO: error?
    vkCmdBindPipeline(_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->vk());
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::set_viewport(const VkViewport& viewport)
+std::expected<void, error::Error> CommandBuffer::set_viewport(const VkViewport& viewport)
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
-   // TODO: error?
    vkCmdSetViewport(_command_buffer, 0, 1, &viewport);
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::set_scissor(const VkRect2D& scissor)
+std::expected<void, error::Error> CommandBuffer::set_scissor(const VkRect2D& scissor)
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
-   // TODO: error?
    vkCmdSetScissor(_command_buffer, 0, 1, &scissor);
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::draw()
+std::expected<void, error::Error> CommandBuffer::draw()
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
    vkCmdDraw(_command_buffer, 3, 1, 0, 0);
    return {};
 }
 
-std::expected<void, CommandError> CommandBuffer::end_renderpass()
+std::expected<void, error::Error> CommandBuffer::end_renderpass()
 {
    if (_state != State::Recording) {
-      return std::unexpected(CommandError::from_code(CommandError::Code::BufferNotRecording,
-                                                     "Commandbuffer state is not recording"));
+      return std::unexpected(error::Error("Commandbuffer state is not recording"));
    }
    // TODO: error?
    vkCmdEndRenderPass(_command_buffer);
+   return {};
+}
+
+std::expected<CommandBuffer, error::Error> CommandBuffer::begin_one_time_submit(Device* device,
+                                                                                CommandPool* pool)
+{
+   CommandBufferOptions options;
+   options.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+   options.buffer_count = 1;
+
+   auto cmd_result = CommandBuffer::create(device, pool, options);
+   if (!cmd_result) {
+      return std::unexpected(cmd_result.error());
+   }
+
+   auto begin_result = cmd_result->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+   if (!begin_result) {
+      return std::unexpected(begin_result.error());
+   }
+   return std::move(cmd_result.value());
+}
+
+std::expected<void, error::Error> CommandBuffer::end_and_submit(Device* device, CommandPool* pool)
+{
+   if (vkEndCommandBuffer(_command_buffer) != VK_SUCCESS) {
+      return std::unexpected(error::Error("Failed to end command buffer recording"));
+   }
+   VkSubmitInfo info{};
+   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+   info.commandBufferCount = 1;
+   info.pCommandBuffers = &_command_buffer;
+
+   auto& queue = device->queues().front();
+   if (vkQueueSubmit(queue.vk(), 1, &info, VK_NULL_HANDLE) != VK_SUCCESS) {
+      return std::unexpected(error::Error("Failed to submit command buffer"));
+   }
+
+   if (vkQueueWaitIdle(queue.vk()) != VK_SUCCESS) {
+      return std::unexpected(error::Error("Failed to wait for queue idle"));
+   }
    return {};
 }
 

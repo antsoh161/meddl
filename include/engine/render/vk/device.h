@@ -18,6 +18,12 @@ namespace meddl::render::vk {
 class Surface;
 class Instance;
 
+enum class QueuePreset {
+   Minimal,     // one queue per required family (minimal overhead)
+   Balanced,    // separate queues for graphics/compute/transfer if available
+   Performance  // max parallelism, utilize all available queues
+};
+
 struct DeviceConfiguration {
    std::unordered_map<uint32_t, QueueConfiguration> queue_configurations{};
    std::unordered_set<std::string> extensions{"VK_KHR_swapchain"};
@@ -35,6 +41,7 @@ struct DeviceConfiguration {
    VkAllocationCallbacks* custom_allocator{nullptr};
    bool auto_enable_supported_features{false};
    bool strict_extension_requirements{true};
+   QueuePreset queue_preset{QueuePreset::Balanced};
 };
 
 class Device {
