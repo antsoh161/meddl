@@ -1,5 +1,4 @@
 #pragma once
-
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -89,10 +88,9 @@ class Renderer {
    void set_view_matrix(const glm::mat4 view_matrix);
    void set_vertices(const std::vector<Vertex>& vertices);
    void set_indices(const std::vector<uint32_t>& indices);
+   void set_textures(const ModelData& data);
    void draw_vertices(uint32_t vertex_count = 0);
    void draw(bool recreate_swapchain = false);
-
-   void load_texture(const std::string& path);
 
    std::shared_ptr<glfw::Window> window() { return _window; };
 
@@ -109,10 +107,12 @@ class Renderer {
    vk::PipelineLayout _pipeline_layout{};
    vk::RenderPass _renderpass{};
    vk::GraphicsPipeline _graphics_pipeline{};
-   std::unique_ptr<vk::CommandPool> _command_pool{};
+   vk::CommandPool _command_pool{};
    std::vector<vk::CommandBuffer> _command_buffers{};
    std::unique_ptr<vk::Buffer> _vertex_buffer{};
    std::unique_ptr<vk::Buffer> _index_buffer{};
+
+   std::vector<vk::Texture> _textures{};
 
    std::unique_ptr<vk::DescriptorSetLayout> _descriptor_set_layout{};
    std::vector<vk::Buffer> _uniform_buffers{};
@@ -130,7 +130,7 @@ class Renderer {
    std::vector<vk::Semaphore> _render_finished{};
    std::vector<vk::Fence> _fences{};
 
-   std::unique_ptr<render::vk::Texture> _texture;
+   // std::unique_ptr<render::vk::Texture> _texture;
 
    size_t _current_frame{0};
    uint32_t _vertex_count{0};

@@ -13,6 +13,7 @@ class CommandPool;
 class Buffer;
 class Image {
   public:
+   Image() = default;
    ~Image();
    Image(const Image&) = delete;
    Image& operator=(const Image&) = delete;
@@ -30,14 +31,23 @@ class Image {
                                 Device* device,
                                 const GraphicsConfiguration::AttachmentConfig& config);
 
+   static Image create_texture(Device* device,
+                               uint32_t width,
+                               uint32_t height,
+                               VkFormat format,
+                               uint32_t mip_levels,
+                               VkImageUsageFlags usage);
+
    [[nodiscard]] VkImage vk() const { return _image; }
    [[nodiscard]] VkImageView view() const { return _image_view; }
    [[nodiscard]] VkDeviceMemory memory() const { return _memory; }
    [[nodiscard]] bool is_owner() const { return _owned_resources.has_value(); }
 
    void transition(CommandPool* pool, VkImageLayout old_layout, VkImageLayout new_layout);
-
    void copy_from_buffer(Buffer* buffer, CommandPool* pool);
+   void generate_mipmaps(CommandPool* pool);
+
+   enum class ImageType { Owned, Deferred, Texture };
 
   private:
    Image(Device* device, const GraphicsConfiguration::AttachmentConfig& config);
@@ -53,7 +63,8 @@ class Image {
    VkImageView _image_view{VK_NULL_HANDLE};
    VkImageLayout _current_layout{VK_IMAGE_LAYOUT_UNDEFINED};
    VkDeviceMemory _memory{VK_NULL_HANDLE};
-   VkExtent3D _extent;
+   VkExtent3D _extent{};
+   ImageType _type{ImageType::Owned};
    std::optional<Owned> _owned_resources{std::nullopt};
 };
 }  // namespace meddl::render::vk

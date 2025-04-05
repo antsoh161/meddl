@@ -52,12 +52,15 @@ int main()
    );
    renderer.set_view_matrix(view);
    constexpr auto framerate = 16;
+   uint64_t counter{0};
+   renderer.set_textures(*model);
    while (true) {
       renderer.window()->poll_events();
       renderer.set_vertices(all_vertices);
       renderer.set_indices(all_indices);
       renderer.draw();
       std::this_thread::sleep_for(std::chrono::milliseconds(framerate));
+      counter++;
    }
    return 0;
 }

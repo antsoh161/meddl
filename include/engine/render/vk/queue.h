@@ -1,8 +1,14 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
+#include <unordered_set>
+
 #include "GLFW/glfw3.h"
 
 namespace meddl::render::vk {
+
+enum class QueueFamilyType { Graphics, Present, Compute, Transfer, Unknown };
 
 struct QueueConfiguration {
    QueueConfiguration(uint32_t queue_family_index, float priority = 1, uint32_t queue_count = 1)
@@ -30,5 +36,7 @@ class Queue {
    QueueConfiguration _configuration;
    uint32_t _queue_index{};
    VkQueue _queue;
+   std::unordered_set<QueueFamilyType> _types{};
 };
+
 }  // namespace meddl::render::vk

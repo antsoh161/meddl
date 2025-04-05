@@ -9,6 +9,7 @@
 #include "engine/render/vk/instance.h"
 #include "engine/render/vk/pipeline.h"
 #include "engine/render/vk/queue.h"
+#include "engine/render/vk/sampler.h"
 #include "engine/render/vk/shader.h"
 #include "engine/render/vk/surface.h"
 #include "engine/render/vk/swapchain.h"
