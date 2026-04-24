@@ -1,0 +1,25 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "core_tests",
+    srcs = glob(["core/*.cpp"]),
+    deps = [
+        "//core",
+        "@catch2//:catch2_main",
+    ],
+)
+
+# vk tests require a display; kept as a manual target
+cc_test(
+    name = "vk_tests",
+    srcs = glob(["vk/*.cpp"]),
+    data = [
+        "vk/shader.frag",
+        "vk/shader.vert",
+    ],
+    tags = ["manual"],
+    deps = [
+        "//engine",
+        "@catch2//:catch2_main",
+    ],
+)

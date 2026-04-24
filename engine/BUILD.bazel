@@ -1,0 +1,32 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "engine",
+    srcs = glob([
+        "*.cpp",
+        "render/vk/*.cpp",
+    ]),
+    hdrs = glob([
+        "*.h",
+        "events/**/*.h",
+        "platform/*.h",
+        "render/**/*.h",
+        "render/**/*.hpp",
+    ]),
+    defines = [
+        "GLFW_INCLUDE_VULKAN",
+        "MEDDL_USE_SHADERC",
+    ],
+    linkopts = [
+        "-lvulkan",
+        "-lshaderc_shared",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//core",
+        "@glfw",
+        "@glm",
+        "@spdlog",
+        "@tinygltf",
+    ],
+)

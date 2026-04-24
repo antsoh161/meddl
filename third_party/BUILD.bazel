@@ -1,0 +1,2 @@
+# This package contains BUILD files for external dependencies
+# that are not yet available in the Bazel Central Registry.

@@ -1,0 +1,59 @@
+# ─── Common ───────────────────────────────────────────────────────────────────
+build --cxxopt=-std=c++23
+build --host_cxxopt=-std=c++23
+build --copt=-Wall
+build --copt=-Wextra
+build --copt=-Wpedantic
+
+# Use clang/clang++ by default so sanitizer configs work out-of-the-box.
+build --action_env=CC=clang
+build --action_env=CXX=clang++
+
+# ─── AddressSanitizer ─────────────────────────────────────────────────────────
+build:asan --strip=never
+build:asan --copt=-fsanitize=address
+build:asan --copt=-fsanitize-address-use-after-scope
+build:asan --copt=-fno-omit-frame-pointer
+build:asan --copt=-O1
+build:asan --copt=-g
+build:asan --linkopt=-fsanitize=address
+build:asan --action_env=ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:detect_leaks=1:color=always
+build:asan   --test_env=ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:detect_leaks=1:color=always
+run:asan      --run_env=ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:detect_leaks=1:color=always
+
+# ─── UndefinedBehaviorSanitizer ───────────────────────────────────────────────
+build:ubsan --strip=never
+build:ubsan --copt=-fsanitize=undefined
+build:ubsan --copt=-fsanitize=float-divide-by-zero
+build:ubsan --copt=-fno-omit-frame-pointer
+build:ubsan --copt=-O1
+build:ubsan --copt=-g
+build:ubsan --linkopt=-fsanitize=undefined
+build:ubsan --linkopt=-fsanitize-link-c++-runtime
+build:ubsan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+build:ubsan   --test_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+run:ubsan      --run_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+# ─── ThreadSanitizer ──────────────────────────────────────────────────────────
+# NOTE: TSan is incompatible with ASan/LSan. Run separately with --config=tsan.
+build:tsan --strip=never
+build:tsan --copt=-fsanitize=thread
+build:tsan --copt=-fno-omit-frame-pointer
+build:tsan --copt=-O1
+build:tsan --copt=-g
+build:tsan --linkopt=-fsanitize=thread
+build:tsan --action_env=TSAN_OPTIONS=halt_on_error=1
+build:tsan   --test_env=TSAN_OPTIONS=halt_on_error=1
+run:tsan      --run_env=TSAN_OPTIONS=halt_on_error=1
+
+# ─── clang-tidy ───────────────────────────────────────────────────────────────
+build:clang-tidy --aspects @bazel_clang_tidy//clang_tidy:clang_tidy.bzl%clang_tidy_aspect
+build:clang-tidy --output_groups=report
+build:clang-tidy --@bazel_clang_tidy//:clang_tidy_config=//:clang_tidy_config
+# Run outside the sandbox so clang-tidy can access system headers.
+build:clang-tidy --spawn_strategy=local
+
+# ─── Test output ──────────────────────────────────────────────────────────────
+test --test_output=errors
+
+try-import %workspace%/.bazelrc.local

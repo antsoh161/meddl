@@ -3,3 +3,5 @@ build/*
 *.old
 compile_commands.json
 *cmake-tools*
+bazel-*
+MODULE.bazel.lock

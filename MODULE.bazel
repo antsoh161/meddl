@@ -1,0 +1,77 @@
+module(
+    name = "irma",
+    version = "0.0.1",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.18")
+bazel_dep(name = "catch2", version = "3.13.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.2")
+
+# https://github.com/erenon/bazel_clang_tidy
+BAZEL_CLANG_TIDY_VERSION = "da986512bf1a46831d886fd090393b93b8967a5d"
+
+bazel_dep(name = "bazel_clang_tidy", dev_dependency = True)
+archive_override(
+    module_name = "bazel_clang_tidy",
+    integrity = "sha256-WkayQxTZZiU6BVCPgCq0sDQoNrcPeGQa/vbM/UQRIS8=",
+    strip_prefix = "bazel_clang_tidy-%s" % BAZEL_CLANG_TIDY_VERSION,
+    url = "https://github.com/erenon/bazel_clang_tidy/archive/%s.tar.gz" % BAZEL_CLANG_TIDY_VERSION,
+)
+
+# hedron_compile_commands is not yet in the Bazel Central Registry.
+# Run `bazel run @hedron_compile_commands//:refresh_all` to regenerate
+# compile_commands.json after build targets change.
+bazel_dep(name = "hedron_compile_commands")
+archive_override(
+    module_name = "hedron_compile_commands",
+    urls = ["https://github.com/hedronvision/bazel-compile-commands-extractor/archive/abb61a688167623088f8768cc9264798df6a9d10.tar.gz"],
+    strip_prefix = "bazel-compile-commands-extractor-abb61a688167623088f8768cc9264798df6a9d10",
+    integrity = "sha256-Gwir/7++ifbb7mpbM3U3kugAT2o283wPchFb7IbmhyQ=",
+)
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# https://github.com/g-truc/glm
+http_archive(
+    name = "glm",
+    sha256 = "6775e47231a446fd086d660ecc18bcd076531cfedd912fbd66e576b118607001",
+    strip_prefix = "glm-1.0.3",
+    url = "https://github.com/g-truc/glm/archive/refs/tags/1.0.3.tar.gz",
+    build_file = "//third_party:glm.BUILD",
+)
+
+# https://github.com/glfw/glfw
+http_archive(
+    name = "glfw",
+    sha256 = "f30f42e05f11e5fc62483e513b0488d5bceeab7d9c5da0ffe2252ad81816c713",
+    strip_prefix = "glfw-3.3.8",
+    url = "https://github.com/glfw/glfw/archive/refs/tags/3.3.8.tar.gz",
+    build_file = "//third_party:glfw.BUILD",
+)
+
+# https://github.com/gabime/spdlog
+http_archive(
+    name = "spdlog",
+    sha256 = "25c843860f039a1600f232c6eb9e01e6627f7d030a2ae5e232bdd3c9205d26cc",
+    strip_prefix = "spdlog-1.15.1",
+    url = "https://github.com/gabime/spdlog/archive/refs/tags/v1.15.1.tar.gz",
+    build_file = "//third_party:spdlog.BUILD",
+)
+
+# https://github.com/syoyo/tinygltf
+http_archive(
+    name = "tinygltf",
+    sha256 = "7b93da27c524dd17179a0eeba6f432b0060d82f6222630ba027c219ce11e24db",
+    strip_prefix = "tinygltf-2.9.5",
+    url = "https://github.com/syoyo/tinygltf/archive/refs/tags/v2.9.5.tar.gz",
+    build_file = "//third_party:tinygltf.BUILD",
+)
+
+# https://github.com/NVIDIA/stdexec
+http_archive(
+    name = "stdexec",
+    sha256 = "6f5e3b4c0bc9ca11a47756081d67b265d89d2702b0ab54de395ad7675f21e782",
+    strip_prefix = "stdexec-9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37",
+    url = "https://github.com/NVIDIA/stdexec/archive/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37.tar.gz",
+    build_file = "//third_party:stdexec.BUILD",
+)
